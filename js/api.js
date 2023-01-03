@@ -36,19 +36,14 @@ if (!Promise.allSettled) {
  *
  * @param { boolean } [sudo=false] true일 시 cached 여부에 상관없이 캐싱되지 않은 비디오 fetch
  */
-const getApiResponses = async (sudo = false) => {
-  const headers = {
-    auth: player.companyId,
-    device_id: player.deviceId,
-  };
-  const endpoint = [BASE_URL + RADS_URL, BASE_URL + DEVICE_URL];
-  await Promise.all(endpoint.map(url => axios.get(url, { headers })))
-    .then(([{ data: rad }, { data: device }]) => {
-      initPlayer(rad, device, sudo); // response.data.items[]
-    })
-    .catch(error => {
+const initPlayerWithApiResponses = async (sudo = false) => {
+  try {
+    const rads = await getDataFromUrl(RADS_URL);
+    const device = await getDataFromUrl(DEVICE_URL);
+    initPlayer(rads, device, sudo);
+  } catch (error) {
       console.log(error);
-    });
+  }
 };
 
 /**
@@ -87,20 +82,29 @@ const getUrlFromHS = async (hivestackUrl, retry = 0) => {
 };
 
 /**
- * 서버에서 device의 player 위치 정보를 받아 ui를 갱신
+ * 서버에서 받은 data 정보 반환
  */
-const getPlayerUi = async () => {
+const getDataFromUrl = async url => {
   const headers = {
     auth: player.companyId,
     device_id: player.deviceId,
   };
 
-  const response = await axios.get(BASE_URL + DEVICE_URL, { headers });
+  const { data } = await axios.get(BASE_URL + url, { headers });
+  return data;
+};
+
+/**
+ * 파라미터로 받은 device 정보로 player UI 갱신
+ *
+ * @param { Object } device device 정보
+ */
+const setPlayerUi = device => {
   const position = {
-    top: response.data.top,
-    left: response.data.left,
-    width: response.data.width,
-    height: response.data.height,
+    top: device.top,
+    left: device.left,
+    width: device.width,
+    height: device.height,
   };
   initPlayerUi(position);
 };
@@ -155,18 +159,6 @@ const postWebsocketResult = async data => {
   } catch (error) {
     console.log('error on postWebsocketResult', error);
   }
-};
-
-/**
- * 긴급재생목록을 받아온 뒤 cron으로 schedule
- */
-const getEads = async () => {
-  const headers = {
-    auth: player.companyId,
-    device_id: player.deviceId,
-  };
-  const response = await axios.get(BASE_URL + EADS_URL, { headers });
-  scheduleEads(response.data);
 };
 
 /**
@@ -240,21 +232,8 @@ function initPlayer(rad, device, sudo = false) {
   player.runoff = off;
 
   player.defaultJobs = [];
-  player.defaultJobs.forEach(e => {
-    e.stop();
-  });
-  player.defaultJobs = [];
-  const runon = Cron(hhMMssToCron(on), () => {
-    console.log('cron info - play on', hhMMssToCron(on));
-    player.playlist.currentItem(0);
-    player.play();
-  });
-  player.defaultJobs.push(runon);
-  const runoff = Cron(hhMMssToCron(off), () => {
-    console.log('cron info - play off', hhMMssToCron(off));
-    player.pause();
-  });
-  player.defaultJobs.push(runoff);
+  removeDefaultJobs();
+  scheduleOnOff(on, off);
 
   const playlist = itemsToPlaylist(rad);
   player.videoList = itemsToVideoList(rad);
@@ -273,6 +252,27 @@ function initPlayer(rad, device, sudo = false) {
     }
   });
 }
+
+const removeDefaultJobs = () => {
+  player.defaultJobs = [];
+  player.defaultJobs.forEach(e => {
+    e.stop();
+  });
+};
+
+const scheduleOnOff = (on, off) => {
+  const runon = Cron(hhMMssToCron(on), () => {
+    console.log('cron info - play on', hhMMssToCron(on));
+    player.playlist.currentItem(0);
+    player.play();
+  });
+  player.defaultJobs.push(runon);
+  const runoff = Cron(hhMMssToCron(off), () => {
+    console.log('cron info - play off', hhMMssToCron(off));
+    player.pause();
+  });
+  player.defaultJobs.push(runoff);
+};
 
 /**
  * 일반재생목록 정보를 UI에 표시하기 위해 정제
