@@ -13,16 +13,15 @@ const setDeviceId = async deviceId => {
   };
 
   try {
-    const response = await axios.get(BASE_URL + DEVICE_URL, { headers });
-    if (response.status === 200) {
-      console.log(response);
+    const deviceData = await getDataFromUrl(DEVICE_URL, headers);
+    if (deviceData.code === 'R001') {
       await db.deviceIds.clear();
       await db.deviceIds.add({
-        deviceId: response.data.device_id,
-        companyId: response.data.company_id,
+        deviceId: deviceData.device_id,
+        companyId: deviceData.company_id,
       });
-      player.deviceId = response.data.device_id;
-      player.companyId = response.data.company_id;
+      player.deviceId = deviceData.device_id;
+      player.companyId = deviceData.company_id;
 
       document.querySelector('#device-id').classList.remove('invalid');
       await initPlayerWithApiResponses();
