@@ -84,8 +84,8 @@ const getUrlFromHS = async (hivestackUrl, retry = 0) => {
 /**
  * 서버에서 받은 data 정보 반환
  */
-const getDataFromUrl = async url => {
-  const headers = {
+const getDataFromUrl = async (url, headersObject = null) => {
+  const headers = headersObject || {
     auth: player.companyId,
     device_id: player.deviceId,
   };
