@@ -258,13 +258,31 @@ function initPlayer(rad, device, sudo = false) {
   });
 }
 
+/**
+ * 주어진 두 수의 최대공약수 반환
+ *
+ * @param { number } a
+ * @param { number } b
+ * @return { number } a와 b의 최대공약수
+ */
 const gcd = (a, b) => {
   if (b === 0) return a; // 나누어지면 a 리턴
   return gcd(b, a % b); // 나누어지지 않는다면 b와 a%b를 다시 나눈다
 };
 
+/**
+ * 주어진 두 수의 최소공배수 반환
+ *
+ * @param { number } a
+ * @param { number } b
+ * @return { number } a와 b의 최소공배수
+ */
 const lcm = (a, b) => (a * b) / gcd(a, b); // 두 수의 곱을 최대공약수로 나눈다.
 
+/**
+ * player에 저장된 모든 defaultJobs 정지 및 제거
+ *
+ */
 const removeDefaultJobs = () => {
   player.defaultJobs = [];
   player.defaultJobs.forEach(e => {
@@ -305,6 +323,12 @@ function itemsToVideoList(radList) {
   });
 }
 
+/**
+ * 입력받은 객체를 playlist src 형식에 맞춰 반환
+ *
+ * @param { Object } file
+ * @return { Object } playlist src 형식 객체
+ */
 const fileToPlaylistSrc = file => {
   return {
     sources: [{ src: file.VIDEO_URL, type: 'video/mp4' }],
@@ -322,6 +346,12 @@ const fileToPlaylistSrc = file => {
   };
 };
 
+/**
+ * 주어진 slot들을 category별 slot 순서에 맞게 차원 축소
+ *
+ * @param { Object } originSlot
+ * @return {{ categoryId: number, categoryName: string, files: Object[] }}
+ */
 function formatSlotToPlaylist(originSlot) {
   let formattedSlot = {
     categoryId: originSlot.CATEGORY_ID,
@@ -383,6 +413,13 @@ const postPositionLocked = locked => {
   return axios.post(BASE_URL + POSITION_LOCKED_URL, data, { headers });
 };
 
+/**
+ * 입력받은 객체에서 target을 key로 갖는 모든 경우에 대해 콜백함수 todo 수행
+ *
+ * @param { Object } item 탐색 대상 객체
+ * @param { string } target 찾고자 하는 key 값
+ * @param { Function } todo key, value, object를 매개변수로 갖는 콜백 함수
+ */
 function findData(item, target, todo) {
   let array = Object.keys(item); //키값을 가져옴
   for (let i of array) {
