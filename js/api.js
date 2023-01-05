@@ -253,6 +253,13 @@ function initPlayer(rad, device, sudo = false) {
   });
 }
 
+const gcd = (a, b) => {
+  if (b === 0) return a; // 나누어지면 a 리턴
+  return gcd(b, a % b); // 나누어지지 않는다면 b와 a%b를 다시 나눈다
+};
+
+const lcm = (a, b) => (a * b) / gcd(a, b); // 두 수의 곱을 최대공약수로 나눈다.
+
 const removeDefaultJobs = () => {
   player.defaultJobs = [];
   player.defaultJobs.forEach(e => {
@@ -293,6 +300,44 @@ function itemsToVideoList(radList) {
   });
 }
 
+const fileToPlaylistSrc = file => {
+  return {
+    sources: [{ src: file.VIDEO_URL, type: 'video/mp4' }],
+    isHivestack: file.HIVESTACK_YN,
+    hivestackUrl: file.API_URL,
+    runningTime: file.RUNNING_TIME,
+    report: {
+      COMPANY_ID: player.companyId,
+      DEVICE_ID: player.deviceId,
+      FILE_ID: file.FILE_ID,
+      HIVESTACK_YN: file.HIVESTACK_YN,
+      // HIVESTACK_URL: file.VIDEO_URL,
+      PLAY_ON: null,
+    },
+  };
+};
+
+function formatSlotToPlaylist(originSlot) {
+  let formattedSlot = {
+    categoryId: originSlot.CATEGORY_ID,
+    categoryName: originSlot.CATEGORY_NAME,
+    files: [],
+  };
+  const lengths = originSlot.slots.map(slot => slot.files.length);
+  for (let i = 0; i < lengths.reduce(lcm); i++) {
+    originSlot.slots.forEach(slot => {
+      const src = fileToPlaylistSrc(slot.files[i % slot.files.length]);
+      src.slotId = slot.SLOT_ID;
+      src.slotName = slot.SLOT_NAME;
+      src.categoryId = slot.CATEGORY_ID;
+      formattedSlot.files.push(src);
+    });
+  }
+  return formattedSlot;
+}
+
+// crads.slots.map(originSlot => formatSlotToPlaylist(originSlot));
+
 /**
  * 일반재생목록 정보를 playlist로 사용하기 위해 정제
  *
@@ -332,3 +377,22 @@ const postPositionLocked = locked => {
   const data = { locked: locked ? 'Y' : 'N' };
   return axios.post(BASE_URL + POSITION_LOCKED_URL, data, { headers });
 };
+
+function findData(item, target, todo) {
+  let array = Object.keys(item); //키값을 가져옴
+  for (let i of array) {
+    if (i === target) {
+      // 키값이 찾고자 하는 키랑 일치하면
+      todo(i, item[i], item); //콜백: 키, 값, 객체
+    } else if (item[i].constructor === Object) {
+      //객체면 다시 순회
+      findData(item[i], target, todo);
+    } else if (item[i].constructor === Array) {
+      //배열이면 배열에서 순회
+      let miniArray = item[i];
+      for (let f in miniArray) {
+        findData(miniArray[f], target, todo);
+      }
+    }
+  }
+}
