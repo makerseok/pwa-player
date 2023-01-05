@@ -496,6 +496,7 @@ const reportAll = async () => {
  * @param { Date } date 비디오를 재생할 날짜와 시간.
  * @param { Object } playlist 재생목록
  * @param { boolean } [isPrimary=false] true일 경우 startDate 상관없이 로직 진행
+ * @return { Cron } Cron 객체
  */
 function cronVideo(date, playlist, isPrimary = false) {
   if (playlist.length === 1 && playlist[0].isHivestack === 'Y') {
@@ -519,8 +520,8 @@ function cronVideo(date, playlist, isPrimary = false) {
         }
       },
     );
-    player.jobs.push(job);
     console.log('scheduled on', before2Min);
+    return job;
   } else {
     const job = Cron(
       date,
@@ -530,6 +531,7 @@ function cronVideo(date, playlist, isPrimary = false) {
         player.playlist(context);
         if (isPrimary) {
           player.isPrimaryPlaylist = true;
+          player.primaryPlaylist = context;
           const lastPlayed = await getLastPlayedIndex();
           await gotoPlayableVideo(
             player.primaryPlaylist,
@@ -541,36 +543,33 @@ function cronVideo(date, playlist, isPrimary = false) {
         }
       },
     );
-    player.jobs.push(job);
     console.log('scheduled on', date);
+    return job;
   }
 }
 
 /**
  * playlist에 있는 비디오들을 fetching한 뒤 fetching에 성공할 경우 해당 비디오 schedule
+ * 성공 시 Cron 객체 반환
  *
- * @param { Date } startDate schedule 기준 일자
+ * @param { string } startDate schedule 기준 일자
  * @param { Object[] } playlist 재생목록
  * @param { boolean } [isPrimary=false] true일 경우 startDate 상관없이 로직 진행
- * @return { Promise<boolean | Error> } fetch 성공 시 true 반환
+ * @return { Promise<undefined | Cron> } schedule 성공 시 Cron 객체 반환
  */
 const scheduleVideo = async (startDate, playlist, isPrimary = false) => {
+  console.log(startDate, playlist, isPrimary);
   const hyphenStartDate = new Date(addHyphen(startDate));
   if (isPrimary) {
-    cronVideo(hyphenStartDate, playlist, true);
+    return cronVideo(hyphenStartDate, playlist, true);
   } else if (hyphenStartDate > new Date()) {
     const urls = playlist.map(v => v.sources[0].src).filter(src => src);
 
     const deduplicatedUrls = [...new Set(urls)];
-    try {
-      for (const [index, url] of deduplicatedUrls.entries()) {
-        await axios.get(url);
-      }
-      cronVideo(hyphenStartDate, playlist);
-      return true;
-    } catch (error) {
-      return error;
+    for (const [index, url] of deduplicatedUrls.entries()) {
+      await axios.get(url);
     }
+    return cronVideo(hyphenStartDate, playlist);
   }
 };
 

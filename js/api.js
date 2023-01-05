@@ -191,9 +191,14 @@ const scheduleEads = eadData => {
     ];
     console.log('schedule ead', v);
     scheduleVideo(v.START_DT, data)
-      .then(isScheduled => {
-        if (isScheduled && v.PERIOD_YN === 'Y') {
-          scheduleVideo(v.END_DT, player.primaryPlaylist, true);
+      .then(async job => {
+        if (job) {
+          player.jobs.push(job);
+          if (v.PERIOD_YN === 'Y') {
+            player.jobs.push(
+              await scheduleVideo(v.END_DT, player.primaryPlaylist, true),
+            );
+          }
         }
       })
       .catch(error => {
