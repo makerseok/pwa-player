@@ -4,6 +4,7 @@ const DEVICE_URL = 'devices';
 const POSITION_URL = 'devices/position';
 const POSITION_LOCKED_URL = 'devices/position/locked';
 const RADS_URL = 'rads';
+const CRADS_URL = 'crads';
 const EADS_URL = 'eads';
 const REPORT_URL = 'report';
 const WEBSOCKET_URL = 'websocket';
@@ -38,11 +39,11 @@ if (!Promise.allSettled) {
  */
 const initPlayerWithApiResponses = async (sudo = false) => {
   try {
-    const rads = await getDataFromUrl(RADS_URL);
+    const crads = await getDataFromUrl(CRADS_URL);
     const device = await getDataFromUrl(DEVICE_URL);
-    initPlayer(rads, device, sudo);
+    initPlayer(crads, device, sudo);
   } catch (error) {
-      console.log(error);
+    console.log(error);
   }
 };
 
@@ -210,26 +211,14 @@ const scheduleEads = eadData => {
 /**
  * 일반재생목록과 플레이어 정보를 받아 UI 및 player를 초기화
  *
- * @param { Object[] } rad 서버에서 api를 통해 전달받은 일반재생목록 정보
+ * @param { Object[] } crads 서버에서 api를 통해 전달받은 일반재생목록 정보
  * @param { Object } device 서버에서 api를 통해 전달받은 플레이어 정보
  * @param { boolean } [sudo=false] true일 시 cached 여부에 상관없이 캐싱되지 않은 비디오 fetch
  */
-function initPlayer(rad, device, sudo = false) {
-  const screen = rad.device_code;
+function initPlayer(crads, device, sudo = false) {
+  const screen = crads.device_code;
   const { code, message, device_id, company_id, ...deviceInfo } = device;
-  const {
-    device_name,
-    location,
-    remark,
-    on,
-    off,
-    top,
-    left,
-    width,
-    height,
-    locked,
-    ...rest
-  } = deviceInfo;
+  const { on, off, top, left, width, height, locked, ...rest } = deviceInfo;
   player.locked = locked === 'Y' ? true : false;
   const pos = { top, left, width, height };
   player.position = pos;
@@ -243,10 +232,10 @@ function initPlayer(rad, device, sudo = false) {
   removeDefaultJobs();
   scheduleOnOff(on, off);
 
-  const playlist = itemsToPlaylist(rad);
-  player.videoList = itemsToVideoList(rad);
+  player.videoList = itemsToVideoList(crads);
 
-  const urls = playlist.map(v => v.sources[0].src).filter(src => src);
+  let urls = [];
+  findData(crads, 'VIDEO_URL', (key, value, object) => urls.push(value));
   const deduplicatedUrls = [...new Set(urls)];
 
   fetchVideoAll(deduplicatedUrls, sudo).then(() => {
@@ -254,7 +243,11 @@ function initPlayer(rad, device, sudo = false) {
     renderVideoList(player.videoList);
     setDeviceConfig(deviceInfo);
     initPlayerUi(pos);
-    initPlayerPlaylist(playlist, screen);
+
+    const playlists = cradsToPlaylists(crads);
+    const currentTime = addHyphen(getFormattedDate(new Date()));
+    removeCradJobs();
+    schedulePlaylists(playlists, currentTime);
     if (!mqtt) {
       initWebsocket();
     }
@@ -294,6 +287,17 @@ const removeDefaultJobs = () => {
 };
 
 /**
+ * player에 저장된 모든 cradJobs 정지 및 제거
+ *
+ */
+const removeCradJobs = () => {
+  player.cradJobs.forEach(e => {
+    e.stop();
+  });
+  player.cradJobs = [];
+};
+
+/**
  * 파라미터로 받아온 player 시작, 종료 시각 스케쥴링
  *
  * @param { string } on "HH:MM:SS" 형식의 시작 시각
@@ -309,6 +313,53 @@ const scheduleOnOff = (on, off) => {
   const runoff = scheduleOff(off);
   player.defaultJobs.push(runoff);
 };
+
+/**
+ * 카테고리별 데이터를 현재 시간별로 분류해서 스케쥴링
+ *
+ * @param { Object[] } playlists 카테고리별 비디오 데이터
+ * @param { string } currentTime "YYYY-MM-DD HH24:MI:SS" 형식 현재 시간
+ */
+function schedulePlaylists(playlists, currentTime) {
+  for (let playlist of playlists) {
+    console.log(
+      currentTime,
+      playlist.start,
+      playlist.end,
+      playlist.categoryName,
+    );
+    const startDate = new Date(playlist.start);
+    const hhMMssEnd = gethhMMss(new Date(playlist.end));
+    if (currentTime >= playlist.end) continue;
+    if (currentTime >= playlist.start && currentTime < playlist.end) {
+      initPlayerPlaylist(playlist.files);
+      player.cradJobs.push(scheduleOff(hhMMssEnd));
+    }
+    if (currentTime < playlist.start) {
+      console.log('더 작다!');
+      const overlappingDateIndex = player.cradJobs.findIndex((job, index) => {
+        return job.next().getTime() === startDate.getTime() && job.isEnd;
+      });
+      console.log(overlappingDateIndex);
+      scheduleVideo(playlist.start, playlist.files, true)
+        .then(job => {
+          if (job) {
+            if (overlappingDateIndex !== -1) {
+              player.cradJobs[overlappingDateIndex].stop();
+              player.cradJobs[overlappingDateIndex] = job;
+            } else {
+              player.cradJobs.push(job);
+            }
+            player.cradJobs.push(scheduleOff(hhMMssEnd));
+          }
+        })
+        .catch(error => {
+          console.log('error on scheduleEads', error);
+        });
+    }
+  }
+}
+
 /**
  * 플레이어 종료 시각 스케쥴링
  *
@@ -322,8 +373,32 @@ function scheduleOff(off) {
   });
   job.isEnd = true;
   return job;
-  player.defaultJobs.push(runoff);
-};
+}
+
+/**
+ * api response data 값을 파라미터로 넣을 시 category별로 data를 매칭한 Array 반환
+ *
+ * @param { Object[] } crads
+ * @return { Object[] } 카테고리별 비디오 데이터
+ */
+function cradsToPlaylists(crads) {
+  const tmpSlots = crads.slots.map(originSlot =>
+    formatSlotToPlaylist(originSlot),
+  );
+  const slots = [...new Set(tmpSlots)];
+
+  const playlists = crads.items.map(item => {
+    return {
+      categoryId: item.CATEGORY_ID,
+      categoryName: item.CATEGORY_NAME,
+      start: addHyphen(item.START_DT),
+      end: addHyphen(item.END_DT),
+      files: slots.filter(slot => slot.categoryId === item.CATEGORY_ID)[0]
+        .files,
+    };
+  });
+  return playlists;
+}
 
 /**
  * 일반재생목록 정보를 UI에 표시하기 위해 정제
@@ -390,33 +465,6 @@ function formatSlotToPlaylist(originSlot) {
     });
   }
   return formattedSlot;
-}
-
-// crads.slots.map(originSlot => formatSlotToPlaylist(originSlot));
-
-/**
- * 일반재생목록 정보를 playlist로 사용하기 위해 정제
- *
- * @param { code: string, message:string, items: Object[] } radData 서버에서 api를 통해 전달받은 일반재생목록 정보
- * @return { Object[] } 정제된 Array
- */
-function itemsToPlaylist(radData) {
-  return radData.items.map(v => {
-    return {
-      sources: [{ src: v.VIDEO_URL, type: 'video/mp4' }],
-      isHivestack: v.HIVESTACK_YN,
-      hivestackUrl: v.API_URL,
-      runningTime: v.RUNNING_TIME,
-      report: {
-        COMPANY_ID: player.companyId,
-        DEVICE_ID: player.deviceId,
-        FILE_ID: v.FILE_ID,
-        HIVESTACK_YN: v.HIVESTACK_YN,
-        // HIVESTACK_URL: v.VIDEO_URL,
-        PLAY_ON: null,
-      },
-    };
-  });
 }
 
 /**
