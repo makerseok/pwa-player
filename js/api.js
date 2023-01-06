@@ -388,13 +388,15 @@ function cradsToPlaylists(crads) {
   const slots = [...new Set(tmpSlots)];
 
   const playlists = crads.items.map(item => {
+    const filteredSlots = slots.filter(
+      slot => slot.categoryId === item.CATEGORY_ID,
+    );
     return {
       categoryId: item.CATEGORY_ID,
       categoryName: item.CATEGORY_NAME,
       start: addHyphen(item.START_DT),
       end: addHyphen(item.END_DT),
-      files: slots.filter(slot => slot.categoryId === item.CATEGORY_ID)[0]
-        .files,
+      files: filteredSlots.length ? filteredSlots[0].files : [],
     };
   });
   return playlists;
