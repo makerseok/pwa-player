@@ -233,10 +233,13 @@ function initPlayer(rad, device, sudo = false) {
   player.locked = locked === 'Y' ? true : false;
   const pos = { top, left, width, height };
   player.position = pos;
-  player.runon = on;
-  player.runoff = off;
 
-  player.defaultJobs = [];
+  const onDate = sethhMMss(new Date(), on);
+  const offDate = sethhMMss(new Date(), off);
+
+  player.runon = onDate;
+  player.runoff = offDate > onDate ? offDate : addMinutes(offDate, 1440);
+
   removeDefaultJobs();
   scheduleOnOff(on, off);
 
@@ -284,12 +287,18 @@ const lcm = (a, b) => (a * b) / gcd(a, b); // 두 수의 곱을 최대공약수�
  *
  */
 const removeDefaultJobs = () => {
-  player.defaultJobs = [];
   player.defaultJobs.forEach(e => {
     e.stop();
   });
+  player.defaultJobs = [];
 };
 
+/**
+ * 파라미터로 받아온 player 시작, 종료 시각 스케쥴링
+ *
+ * @param { string } on "HH:MM:SS" 형식의 시작 시각
+ * @param { string } off "HH:MM:SS" 형식의 종료 시각
+ */
 const scheduleOnOff = (on, off) => {
   const runon = Cron(hhMMssToCron(on), () => {
     console.log('cron info - play on', hhMMssToCron(on));
@@ -297,10 +306,22 @@ const scheduleOnOff = (on, off) => {
     player.play();
   });
   player.defaultJobs.push(runon);
-  const runoff = Cron(hhMMssToCron(off), () => {
+  const runoff = scheduleOff(off);
+  player.defaultJobs.push(runoff);
+};
+/**
+ * 플레이어 종료 시각 스케쥴링
+ *
+ * @param { string } off "HH:MM:SS" 형식의 종료 시각
+ * @return { Cron } 플레이어 종료 Cron 객체
+ */
+function scheduleOff(off) {
+  const job = Cron(hhMMssToCron(off), () => {
     console.log('cron info - play off', hhMMssToCron(off));
     player.pause();
   });
+  job.isEnd = true;
+  return job;
   player.defaultJobs.push(runoff);
 };
 
