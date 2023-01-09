@@ -161,14 +161,16 @@ const hhMMssToCron = hhMMss => {
  * @returns { string } "yyyymmdd" 형식 문자열
  */
 const getyymmdd = date => {
-  return (
-    date.getFullYear().toString() +
-    (date.getMonth() + 1 < 9
-      ? '0' + (date.getMonth() + 1)
-      : date.getMonth() + 1
-    ).toString() +
-    (date.getDate() < 9 ? '0' + date.getDate() : date.getDate()).toString()
-  );
+  function leftPad(value) {
+    if (value >= 10) {
+      return value.toString();
+    }
+    return `0${value}`;
+  }
+  const year = date.getFullYear();
+  const month = leftPad(date.getMonth() + 1);
+  const day = leftPad(date.getDate());
+  return year + month + day;
 };
 
 /**
