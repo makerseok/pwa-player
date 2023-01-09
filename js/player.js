@@ -80,10 +80,12 @@ const fetchVideoAll = async (urls, sudo = false) => {
         displaySpinnerOnTable();
         disableDeviceIdButton();
       }
-      const progressSpinner = document.querySelector('progress-spinner');
       for (const [index, url] of targetUrls.entries()) {
         try {
-          progressSpinner.setProgress(parseInt((index / total) * 100));
+          if (!sudo) {
+            const progressSpinner = document.querySelector('progress-spinner');
+            progressSpinner.setProgress(parseInt((index / total) * 100));
+          }
           await axios.get(url);
         } catch (error) {
           console.log('Error on fetching ' + url, error);
@@ -309,7 +311,7 @@ player.on('play', () => {
     player.pause();
   }
 
-  const date = new Date();
+  const date = Math.floor(new Date().getTime() / 1000);
   if (date < player.runon || date > player.runoff) {
     player.pause();
   }
@@ -432,6 +434,8 @@ async function gotoPlayableVideo(playlist, currentIndex) {
   for (let i = 0; i < sortedDistances.length; i++) {
     if (await isCached(playlist[sortedDistances[i].idx].sources[0].src)) {
       player.playlist.currentItem(sortedDistances[i].idx);
+      player.currentTime(0);
+      player.play();
       success = true;
       console.log('go to', sortedDistances[i].idx);
       break;
@@ -439,6 +443,7 @@ async function gotoPlayableVideo(playlist, currentIndex) {
   }
   if (!success) {
     player.playlist.currentItem(currentIndex);
+    player.currentTime(0);
     console.log('go to', currentIndex);
     player.play();
   }
@@ -544,6 +549,7 @@ function cronVideo(date, playlist, isPrimary = false) {
         } else {
           player.isPrimaryPlaylist = false;
           player.playlist.currentItem(0);
+          player.currentTime(0);
         }
       },
     );

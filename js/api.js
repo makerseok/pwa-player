@@ -226,8 +226,11 @@ function initPlayer(crads, device, sudo = false) {
   const onDate = sethhMMss(new Date(), on);
   const offDate = sethhMMss(new Date(), off);
 
-  player.runon = onDate;
-  player.runoff = offDate > onDate ? offDate : addMinutes(offDate, 1440);
+  player.runon = Math.floor(onDate.getTime() / 1000);
+  player.runoff =
+    offDate > onDate
+      ? Math.floor(offDate.getTime() / 1000)
+      : Math.floor(addMinutes(offDate, 1440).getTime() / 1000);
 
   removeDefaultJobs();
   scheduleOnOff(on, off);
@@ -238,7 +241,7 @@ function initPlayer(crads, device, sudo = false) {
   findData(crads, 'VIDEO_URL', (key, value, object) => urls.push(value));
   const deduplicatedUrls = [...new Set(urls)];
 
-  fetchVideoAll(deduplicatedUrls, sudo).then(() => {
+  fetchVideoAll(deduplicatedUrls, sudo).then(async () => {
     console.log('finish fetching');
     renderVideoList(player.videoList);
     setDeviceConfig(deviceInfo);
@@ -247,7 +250,7 @@ function initPlayer(crads, device, sudo = false) {
     const playlists = cradsToPlaylists(crads);
     const currentTime = addHyphen(getFormattedDate(new Date()));
     removeCradJobs();
-    schedulePlaylists(playlists, currentTime);
+    await schedulePlaylists(playlists, currentTime);
     if (!mqtt) {
       initWebsocket();
     }
@@ -307,6 +310,7 @@ const scheduleOnOff = (on, off) => {
   const runon = Cron(hhMMssToCron(on), () => {
     console.log('cron info - play on', hhMMssToCron(on));
     player.playlist.currentItem(0);
+    player.currentTime(0);
     player.play();
   });
   player.defaultJobs.push(runon);
@@ -320,7 +324,7 @@ const scheduleOnOff = (on, off) => {
  * @param { Object[] } playlists 카테고리별 비디오 데이터
  * @param { string } currentTime "YYYY-MM-DD HH24:MI:SS" 형식 현재 시간
  */
-function schedulePlaylists(playlists, currentTime) {
+async function schedulePlaylists(playlists, currentTime) {
   for (let playlist of playlists) {
     console.log(
       currentTime,
@@ -341,21 +345,16 @@ function schedulePlaylists(playlists, currentTime) {
         return job.next().getTime() === startDate.getTime() && job.isEnd;
       });
       console.log(overlappingDateIndex);
-      scheduleVideo(playlist.start, playlist.files, true)
-        .then(job => {
-          if (job) {
-            if (overlappingDateIndex !== -1) {
-              player.cradJobs[overlappingDateIndex].stop();
-              player.cradJobs[overlappingDateIndex] = job;
-            } else {
-              player.cradJobs.push(job);
-            }
-            player.cradJobs.push(scheduleOff(hhMMssEnd));
-          }
-        })
-        .catch(error => {
-          console.log('error on scheduleEads', error);
-        });
+      const job = await scheduleVideo(playlist.start, playlist.files, true);
+      if (job) {
+        if (overlappingDateIndex !== -1) {
+          player.cradJobs[overlappingDateIndex].stop();
+          player.cradJobs[overlappingDateIndex] = job;
+        } else {
+          player.cradJobs.push(job);
+        }
+        player.cradJobs.push(scheduleOff(hhMMssEnd));
+      }
     }
   }
 }
