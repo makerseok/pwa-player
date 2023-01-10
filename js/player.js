@@ -335,10 +335,16 @@ player.on('ended', async function () {
   const currentIndex = this.playlist.currentIndex();
   const nextIndex = this.playlist.nextIndex();
   const currentItem = playlist[currentIndex];
-  const playOn = currentItem.report.PLAY_ON;
 
   if (player.isPrimaryPlaylist) {
-    await storeLastPlayedVideo(currentIndex, playOn);
+    const videoInfo = {
+      videoIndex: currentIndex,
+      PlayOn: currentItem.report.PLAY_ON,
+      categoryId: currentItem.categoryId,
+      slotId: currentItem.slotId,
+      fileId: currentItem.report.FILE_ID,
+    };
+    await storeLastPlayedVideo(videoInfo);
   }
   if (playlist[currentIndex].periodYn === 'N') {
     console.log('periodYn is N!');
@@ -363,16 +369,14 @@ player.on('ended', async function () {
 /**
  * 마지막으로 재생된 비디오의 인덱스를 데이터베이스에 저장
  *
- * @param { number } videoIndex - 비디오 인덱스
- * @param { string } PlayOn - 비디오가 재생된 날짜, "yyyymmdd hh:MM:ss" 형식
+ * @param { Object } videoInfo - 비디오 정보
  */
-const storeLastPlayedVideo = async (videoIndex, PlayOn) => {
+const storeLastPlayedVideo = async videoInfo => {
   const storedOn = getFormattedDate(new Date());
   await db.lastPlayed.put({
     deviceId: player.deviceId,
-    videoIndex,
-    PlayOn,
     storedOn,
+    ...videoInfo,
   });
 };
 
