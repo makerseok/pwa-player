@@ -307,14 +307,7 @@ const removeCradJobs = () => {
  * @param { string } off "HH:MM:SS" 형식의 종료 시각
  */
 const scheduleOnOff = (on, off) => {
-  const runon = Cron(hhMMssToCron(on), async () => {
-    console.log('cron info - play on', hhMMssToCron(on));
-    player.playlist(player.primaryPlaylist);
-    player.isEnd = false;
-    player.playlist.currentItem(0);
-    player.currentTime(0);
-    await player.play();
-  });
+  const runon = scheduleOn(on);
   player.defaultJobs.push(runon);
   const runoff = scheduleOff(off);
   player.defaultJobs.push(runoff);
@@ -362,6 +355,24 @@ async function schedulePlaylists(playlists, currentTime) {
       }
     }
   }
+}
+
+/**
+ * 플레이어 시작 시각 스케쥴링
+ *
+ * @param { string } on "HH:MM:SS" 형식의 시작 시각
+ * @return { Cron } 플레이어 시작 Cron 객체
+ */
+function scheduleOn(on) {
+  const job = Cron(hhMMssToCron(on), async () => {
+    console.log('cron info - play on', hhMMssToCron(on));
+    player.playlist(player.primaryPlaylist);
+    player.isEnd = false;
+    player.playlist.currentItem(0);
+    player.currentTime(0);
+    await player.play();
+  });
+  return job;
 }
 
 /**
