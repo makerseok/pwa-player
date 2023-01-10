@@ -243,10 +243,10 @@ player.ready(async function () {
   this.jobs = [];
 });
 
-player.on('enterFullWindow', () => {
+player.on('enterFullWindow', async () => {
   player.isVisible = true;
   showPlayerMobile();
-  player.play();
+  await player.play();
 });
 
 player.on('exitFullWindow', () => {
@@ -312,7 +312,7 @@ player.on('play', () => {
   }
 
   const date = Math.floor(new Date().getTime() / 1000);
-  if (date < player.runon || date > player.runoff) {
+  if (date < player.runon || date > player.runoff || player.isEnd) {
     player.pause();
   }
 });
@@ -350,7 +350,7 @@ player.on('ended', async function () {
   } else if (await isCached(playlist[nextIndex].sources[0].src)) {
     console.log('video is cached, index is', nextIndex);
     if (currentIndex === nextIndex) {
-      player.play();
+      await player.play();
     }
     player.playlist.next();
   } else {
@@ -408,7 +408,7 @@ const initPlayerPlaylist = (playlist, screen) => {
       console.log('######## last played index is', lastPlayed.videoIndex);
       await gotoPlayableVideo(playlist, lastPlayed.videoIndex);
       if (player.paused()) {
-        player.play();
+        await player.play();
       }
     })
     .catch(error => {
@@ -435,7 +435,7 @@ async function gotoPlayableVideo(playlist, currentIndex) {
     if (await isCached(playlist[sortedDistances[i].idx].sources[0].src)) {
       player.playlist.currentItem(sortedDistances[i].idx);
       player.currentTime(0);
-      player.play();
+      await player.play();
       success = true;
       console.log('go to', sortedDistances[i].idx);
       break;
@@ -445,7 +445,7 @@ async function gotoPlayableVideo(playlist, currentIndex) {
     player.playlist.currentItem(currentIndex);
     player.currentTime(0);
     console.log('go to', currentIndex);
-    player.play();
+    await player.play();
   }
 }
 
@@ -538,6 +538,7 @@ function cronVideo(date, playlist, isPrimary = false) {
       async (_self, context) => {
         console.log('cron context', context);
         player.playlist(context);
+        player.isEnd = false;
         if (isPrimary) {
           player.isPrimaryPlaylist = true;
           player.primaryPlaylist = context;

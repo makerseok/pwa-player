@@ -1,5 +1,5 @@
-const STATIC_CACHE_NAME = 'site-static-92';
-const DYNAMIC_CACHE_NAME = 'site-dynamic-v83';
+const STATIC_CACHE_NAME = 'site-static-94';
+const DYNAMIC_CACHE_NAME = 'site-dynamic-v85';
 const VIDEO_CACHE_NAME = 'site-video-v4';
 const FONT_CACHE_NAME = 'site-font-v1';
 const APEX_CACHE_NAME = 'site-apex-v1';

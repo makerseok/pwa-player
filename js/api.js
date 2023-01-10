@@ -222,7 +222,7 @@ function initPlayer(crads, device, sudo = false) {
   player.locked = locked === 'Y' ? true : false;
   const pos = { top, left, width, height };
   player.position = pos;
-
+  player.isEnd = false;
   const onDate = sethhMMss(new Date(), on);
   const offDate = sethhMMss(new Date(), off);
 
@@ -307,11 +307,13 @@ const removeCradJobs = () => {
  * @param { string } off "HH:MM:SS" 형식의 종료 시각
  */
 const scheduleOnOff = (on, off) => {
-  const runon = Cron(hhMMssToCron(on), () => {
+  const runon = Cron(hhMMssToCron(on), async () => {
     console.log('cron info - play on', hhMMssToCron(on));
+    player.playlist(player.primaryPlaylist);
+    player.isEnd = false;
     player.playlist.currentItem(0);
     player.currentTime(0);
-    player.play();
+    await player.play();
   });
   player.defaultJobs.push(runon);
   const runoff = scheduleOff(off);
@@ -336,11 +338,14 @@ async function schedulePlaylists(playlists, currentTime) {
     const hhMMssEnd = gethhMMss(new Date(playlist.end));
     if (currentTime >= playlist.end) continue;
     if (currentTime >= playlist.start && currentTime < playlist.end) {
+      console.log(
+        'currentTime >= playlist.start && currentTime < playlist.end',
+      );
       initPlayerPlaylist(playlist.files);
       player.cradJobs.push(scheduleOff(hhMMssEnd));
     }
     if (currentTime < playlist.start) {
-      console.log('더 작다!');
+      console.log('currentTime < playlist.start');
       const overlappingDateIndex = player.cradJobs.findIndex((job, index) => {
         return job.next().getTime() === startDate.getTime() && job.isEnd;
       });
@@ -369,6 +374,7 @@ function scheduleOff(off) {
   const job = Cron(hhMMssToCron(off), () => {
     console.log('cron info - play off', hhMMssToCron(off));
     player.pause();
+    player.isEnd = true;
   });
   job.isEnd = true;
   return job;
