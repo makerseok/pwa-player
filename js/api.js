@@ -234,7 +234,7 @@ function initPlayer(crads, device, sudo = false) {
 
   removeDefaultJobs();
   scheduleOnOff(on, off);
-  scheduleCallTime(call_time);
+  player.defaultJobs.push(scheduleCallTime(call_time));
 
   player.videoList = itemsToVideoList(crads);
 
