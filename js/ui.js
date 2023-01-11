@@ -155,7 +155,7 @@ const displaySpinnerWithPercent = node => {
  * 비디오 목록과 설정 정보에 spinner 표시
  */
 const displaySpinnerOnTable = () => {
-  const videoListNode = document.querySelector('#video-body');
+  const videoListNode = document.querySelector('.info-table');
   const deviceConfigNode = document.querySelector('#device-config');
   displaySpinnerWithPercent(videoListNode);
   displaySpinner(deviceConfigNode);
@@ -218,6 +218,39 @@ const renderVideoList = (videoList, currentPage = 1) => {
     });
   createPagination(videoList.length, currentPage);
 };
+
+function renderCategoryList(categoryList) {
+  const parentNode = document.querySelector('.info-table');
+  removeAllChildNodes(parentNode);
+
+  parentNode.appendChild(createCategoryList(categoryList));
+}
+
+function createCategoryList(categoryList) {
+  const categoryListNode = document.createElement('ul');
+  categoryListNode.className = 'collapsible';
+
+  categoryListInnerHtml = '';
+  categoryListInnerHtml += categoryList.reduce((acc, cur, idx) => {
+    return (acc += `
+      <li>
+        <div class="collapsible-header" tabindex="0">
+          <span class="category-index">${idx + 1}</span>
+          <span class="category-name">${cur.categoryName}</span>
+          <span class="badge">
+            ${cur.start.split(' ')[1]} ~ ${cur.end.split(' ')[1]}
+          </span>
+        </div>
+        <div class="collapsible-body">
+          <span>Lorem ipsum dolor sit amet.</span>
+        </div>
+      </li>
+    `);
+  }, categoryListInnerHtml);
+  categoryListNode.innerHTML = categoryListInnerHtml;
+  M.Collapsible.init(categoryListNode);
+  return categoryListNode;
+}
 
 /**
  * 디바이스 정보를 받아 설정 정보 UI 렌더링

@@ -216,7 +216,7 @@ const scheduleEads = eadData => {
  * @param { boolean } [sudo=false] true일 시 cached 여부에 상관없이 캐싱되지 않은 비디오 fetch
  */
 function initPlayer(crads, device, sudo = false) {
-  const screen = crads.device_code;
+  player.playlist([]);
   const { code, message, device_id, company_id, ...deviceInfo } = device;
   const { on, off, top, left, width, height, locked, call_time } = deviceInfo;
   player.locked = locked === 'Y' ? true : false;
@@ -244,11 +244,11 @@ function initPlayer(crads, device, sudo = false) {
 
   fetchVideoAll(deduplicatedUrls, sudo).then(async () => {
     console.log('finish fetching');
-    renderVideoList(player.videoList);
+    const playlists = cradsToPlaylists(crads);
+    renderCategoryList(playlists);
     setDeviceConfig(deviceInfo);
     initPlayerUi(pos);
 
-    const playlists = cradsToPlaylists(crads);
     const currentTime = addHyphen(getFormattedDate(new Date()));
     removeCradJobs();
     await schedulePlaylists(playlists, currentTime);

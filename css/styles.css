@@ -100,6 +100,19 @@ nav .sidenav-trigger {
   vertical-align: top;
   height: 5rem;
 }
+.category-index {
+  margin-right: 1rem;
+  border-radius: 0.3rem;
+  background: var(--secondary);
+  padding: 0 0.5rem;
+  display: inline-block;
+  text-align: center;
+  color: var(--font-color);
+}
+
+.category-name {
+  color: var(--primary);
+}
 
 /* video pagination */
 .pagination {
