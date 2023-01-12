@@ -508,7 +508,7 @@ const reportAll = async () => {
     M.toast({ html: 'reports posted!' });
     db.reports.clear();
   } else {
-    console.log('report post failed!');
+    console.log('report post failed!', result);
   }
 };
 

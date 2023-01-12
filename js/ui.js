@@ -155,7 +155,7 @@ const displaySpinnerWithPercent = node => {
  * 비디오 목록과 설정 정보에 spinner 표시
  */
 const displaySpinnerOnTable = () => {
-  const videoListNode = document.querySelector('.info-table');
+  const videoListNode = document.querySelector('#category-list');
   const deviceConfigNode = document.querySelector('#device-config');
   displaySpinnerWithPercent(videoListNode);
   displaySpinner(deviceConfigNode);
@@ -219,29 +219,29 @@ const renderVideoList = (videoList, currentPage = 1) => {
   createPagination(videoList.length, currentPage);
 };
 
-function renderCategoryList(categoryList) {
-  const parentNode = document.querySelector('.info-table');
+function renderCategoryList(crads) {
+  const parentNode = document.querySelector('#category-list');
   removeAllChildNodes(parentNode);
 
-  parentNode.appendChild(createCategoryList(categoryList));
+  parentNode.appendChild(createCategoryList(crads));
 }
 
-function createCategoryList(categoryList) {
+function createCategoryList(crads) {
   const categoryListNode = document.createElement('ul');
   categoryListNode.className = 'collapsible';
 
   categoryListInnerHtml = '';
-  categoryListInnerHtml += categoryList.reduce((acc, cur, idx) => {
+  categoryListInnerHtml += crads.items.reduce((acc, cur, idx) => {
     return (acc += `
       <li>
         <div class="collapsible-header" tabindex="0">
           <span class="category-index">${idx + 1}</span>
-          <span class="category-name">${cur.categoryName}</span>
+          <span class="category-name">${cur.CATEGORY_NAME}</span>
           <span class="badge">
-            ${cur.start.split(' ')[1]} ~ ${cur.end.split(' ')[1]}
+            ${cur.START_DT.split(' ')[1]} ~ ${cur.END_DT.split(' ')[1]}
           </span>
         </div>
-        <div class="collapsible-body">
+        <div class="collapsible-body" data-category-id=${cur.CATEGORY_ID}>
           <span>Lorem ipsum dolor sit amet.</span>
         </div>
       </li>
@@ -250,6 +250,61 @@ function createCategoryList(categoryList) {
   categoryListNode.innerHTML = categoryListInnerHtml;
   M.Collapsible.init(categoryListNode);
   return categoryListNode;
+}
+
+function renderCategoryTree(crads) {
+  $('.collapsible-body').each((idx, item) => {
+    $(item).on('loaded.jstree', function () {
+      categoryTreeTouchEvent(this);
+    });
+    const categoryId = $(item).data('category-id');
+    const slots = crads.slots.filter(slot => slot.CATEGORY_ID === categoryId)[0]
+      .slots;
+
+    const treeData = slots.reduce((acc, cur, idx) => {
+      const parentNode = {
+        id: cur.SLOT_ID,
+        parent: '#',
+        text: cur.SLOT_NAME,
+      };
+
+      const childNodes = cur.files.map(file => {
+        return {
+          id: `${file.SLOT_ID}-${file.RN}`,
+          parent: file.SLOT_ID,
+          text: file.D_FILE_NAME || file.TYP,
+          icon: 'jstree-file',
+        };
+      });
+      acc.push(parentNode, ...childNodes);
+      return acc;
+    }, []);
+
+    $(item).jstree({
+      core: {
+        data: treeData,
+        themes: {
+          name: 'default-dark',
+        },
+      },
+    });
+  });
+}
+
+function categoryTreeTouchEvent(root) {
+  $(root)
+    .find('.jstree-anchor[aria-level="1"]')
+    .on('touchstart', event => {
+      const parentNode = event.currentTarget.parentNode;
+      const parentId = parentNode.getAttribute('id');
+      const isOpened = parentNode.classList.contains('jstree-open');
+
+      if (isOpened) {
+        $(parentNode).jstree('close_node', parentId);
+      } else {
+        $(parentNode).jstree('open_node', parentId);
+      }
+    });
 }
 
 /**

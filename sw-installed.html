@@ -20,6 +20,11 @@
     />
     <link type="text/css" href="css/styles.css" rel="stylesheet" />
     <link type="text/css" href="css/jquery-ui.min.css" rel="stylesheet" />
+    <link
+      type="text/css"
+      href="css/jstree/themes/default-dark/style.min.css"
+      rel="stylesheet"
+    />
     <link type="text/css" href="css/video-js.min.css" rel="stylesheet" />
     <script src="js/materialize.min.js"></script>
     <script src="js/video.min.js"></script>
@@ -34,6 +39,7 @@
     <!-- <script src="https://code.jquery.com/jquery-1.12.4.js"></script> -->
     <script src="js/jquery.min.js"></script>
     <script src="js/jquery-ui.min.js"></script>
+    <script src="js/jstree.min.js"></script>
     <script src="js/axios.min.js"></script>
     <script src="js/dexie.min.js"></script>
   </head>
@@ -56,7 +62,7 @@
     <div class="videos row grey-text text-lighten-4">
       <div class="info video-info col">
         <div class="title">카테고리 목록</div>
-        <div class="info-table"></div>
+        <div id="category-list" class="info-table"></div>
       </div>
       <div class="info device-info mobile-hidden col">
         <div class="title">설정 정보</div>

@@ -244,11 +244,12 @@ function initPlayer(crads, device, sudo = false) {
 
   fetchVideoAll(deduplicatedUrls, sudo).then(async () => {
     console.log('finish fetching');
-    const playlists = cradsToPlaylists(crads);
-    renderCategoryList(playlists);
+    renderCategoryList(crads);
+    renderCategoryTree(crads);
     setDeviceConfig(deviceInfo);
     initPlayerUi(pos);
 
+    const playlists = cradsToPlaylists(crads);
     const currentTime = addHyphen(getFormattedDate(new Date()));
     removeCradJobs();
     await schedulePlaylists(playlists, currentTime);
