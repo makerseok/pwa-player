@@ -471,6 +471,9 @@ async function addReport(currentItem) {
     axios.get(currentItem.reportUrl).catch(error => {
       console.log(error);
     });
+    const cachedVideo = await caches.open(VIDEO_CACHE_NAME);
+    await cachedVideo.delete(currentItem.sources[0].src);
+    console.log('cache deleted', currentItem.sources[0].src);
   }
   let report = currentItem.report;
 

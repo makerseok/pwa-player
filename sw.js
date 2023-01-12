@@ -1,5 +1,5 @@
-const STATIC_CACHE_NAME = 'site-static-94';
-const DYNAMIC_CACHE_NAME = 'site-dynamic-v85';
+const STATIC_CACHE_NAME = 'site-static-95';
+const DYNAMIC_CACHE_NAME = 'site-dynamic-v86';
 const VIDEO_CACHE_NAME = 'site-video-v4';
 const FONT_CACHE_NAME = 'site-font-v1';
 const APEX_CACHE_NAME = 'site-apex-v1';
@@ -187,7 +187,7 @@ const cacheVideo = async (url, response) => {
 
 const fetchVideo = async request => {
   const response = await fetch(request);
-  if (response.status === 200 && !request.url.includes('cloudfront.net')) {
+  if (response.status === 200) {
     await cacheVideo(request.url, response.clone());
     console.log('video cached', request.url);
   }
