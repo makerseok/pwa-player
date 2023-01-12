@@ -187,7 +187,7 @@ const cacheVideo = async (url, response) => {
 
 const fetchVideo = async request => {
   const response = await fetch(request);
-  if (response.status === 200) {
+  if (response.status === 200 && !request.url.includes('cloudfront.net')) {
     await cacheVideo(request.url, response.clone());
     console.log('video cached', request.url);
   }
