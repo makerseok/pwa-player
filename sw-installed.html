@@ -20,6 +20,11 @@
     />
     <link type="text/css" href="css/styles.css" rel="stylesheet" />
     <link type="text/css" href="css/jquery-ui.min.css" rel="stylesheet" />
+    <link
+      type="text/css"
+      href="css/jstree/themes/default-dark/style.min.css"
+      rel="stylesheet"
+    />
     <link type="text/css" href="css/video-js.min.css" rel="stylesheet" />
     <script src="js/materialize.min.js"></script>
     <script src="js/video.min.js"></script>
@@ -34,6 +39,7 @@
     <!-- <script src="https://code.jquery.com/jquery-1.12.4.js"></script> -->
     <script src="js/jquery.min.js"></script>
     <script src="js/jquery-ui.min.js"></script>
+    <script src="js/jstree.min.js"></script>
     <script src="js/axios.min.js"></script>
     <script src="js/dexie.min.js"></script>
   </head>
@@ -42,7 +48,7 @@
     <nav class="z-depth-0">
       <div class="nav-wrapper container grey-text text-lighten-4">
         <a href="" class="brand-logo">PWA<span>player</span></a>
-        <ul id="nav-mobile" class="right hide-on-med-and-down">
+        <ul id="nav-mobile" class="right">
           <li><a onclick="initialization()">초기화</a></li>
         </ul>
       </div>
@@ -55,23 +61,8 @@
     <!-- videos -->
     <div class="videos row grey-text text-lighten-4">
       <div class="info video-info col">
-        <div class="title">비디오 목록</div>
-        <div class="info-table">
-          <table>
-            <thead>
-              <tr>
-                <th>순번</th>
-                <th>재생시간</th>
-                <th>광고명</th>
-                <th>편성종류</th>
-                <th>시작일자</th>
-                <th>종료일자</th>
-              </tr>
-            </thead>
-            <tbody id="video-body"></tbody>
-          </table>
-          <ul id="video-pagination" class="pagination center"></ul>
-        </div>
+        <div class="title">카테고리 목록</div>
+        <div id="category-list" class="info-table"></div>
       </div>
       <div class="info device-info mobile-hidden col">
         <div class="title">설정 정보</div>

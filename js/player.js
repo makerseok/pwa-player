@@ -13,19 +13,18 @@ const setDeviceId = async deviceId => {
   };
 
   try {
-    const response = await axios.get(BASE_URL + DEVICE_URL, { headers });
-    if (response.status === 200) {
-      console.log(response);
+    const deviceData = await getDataFromUrl(DEVICE_URL, headers);
+    if (deviceData.code === 'R001') {
       await db.deviceIds.clear();
       await db.deviceIds.add({
-        deviceId: response.data.device_id,
-        companyId: response.data.company_id,
+        deviceId: deviceData.device_id,
+        companyId: deviceData.company_id,
       });
-      player.deviceId = response.data.device_id;
-      player.companyId = response.data.company_id;
+      player.deviceId = deviceData.device_id;
+      player.companyId = deviceData.company_id;
 
       document.querySelector('#device-id').classList.remove('invalid');
-      await getApiResponses();
+      await initPlayerWithApiResponses();
     }
   } catch (error) {
     document.querySelector('#device-id').classList.add('invalid');
@@ -81,10 +80,12 @@ const fetchVideoAll = async (urls, sudo = false) => {
         displaySpinnerOnTable();
         disableDeviceIdButton();
       }
-      const progressSpinner = document.querySelector('progress-spinner');
       for (const [index, url] of targetUrls.entries()) {
         try {
-          progressSpinner.setProgress(parseInt((index / total) * 100));
+          if (!sudo) {
+            const progressSpinner = document.querySelector('progress-spinner');
+            progressSpinner.setProgress(parseInt((index / total) * 100));
+          }
           await axios.get(url);
         } catch (error) {
           console.log('Error on fetching ' + url, error);
@@ -162,14 +163,16 @@ const hhMMssToCron = hhMMss => {
  * @returns { string } "yyyymmdd" 형식 문자열
  */
 const getyymmdd = date => {
-  return (
-    date.getFullYear().toString() +
-    (date.getMonth() + 1 < 9
-      ? '0' + (date.getMonth() + 1)
-      : date.getMonth() + 1
-    ).toString() +
-    (date.getDate() < 9 ? '0' + date.getDate() : date.getDate()).toString()
-  );
+  function leftPad(value) {
+    if (value >= 10) {
+      return value.toString();
+    }
+    return `0${value}`;
+  }
+  const year = date.getFullYear();
+  const month = leftPad(date.getMonth() + 1);
+  const day = leftPad(date.getDate());
+  return year + month + day;
 };
 
 /**
@@ -207,10 +210,12 @@ let player = videojs(document.querySelector('.video-js'), {
   controls: false,
   preload: 'none',
   loadingSpinner: false,
+  errorDisplay: false,
 });
 
 player.ready(async function () {
   player.defaultJobs = [];
+  player.cradJobs = [];
   console.log('player ready');
 
   const params = new URLSearchParams(location.search);
@@ -221,7 +226,7 @@ player.ready(async function () {
   if (queryStringDeviceId && queryStringCompanyId) {
     this.deviceId = queryStringDeviceId;
     this.companyId = queryStringCompanyId;
-    await getApiResponses();
+    await initPlayerWithApiResponses();
   } else {
     const deviceIds = await db.deviceIds.toArray();
     if (deviceIds.length) {
@@ -230,7 +235,7 @@ player.ready(async function () {
 
       this.deviceId = deviceId;
       this.companyId = companyId;
-      await getApiResponses();
+      await initPlayerWithApiResponses();
     } else {
       console.log('device id is not defined');
     }
@@ -239,10 +244,10 @@ player.ready(async function () {
   this.jobs = [];
 });
 
-player.on('enterFullWindow', () => {
+player.on('enterFullWindow', async () => {
   player.isVisible = true;
   showPlayerMobile();
-  player.play();
+  await player.play();
 });
 
 player.on('exitFullWindow', () => {
@@ -308,7 +313,7 @@ player.on('play', () => {
   }
 
   const date = Math.floor(new Date().getTime() / 1000);
-  if (date < player.runon || date > player.runoff) {
+  if (date < player.runon || date > player.runoff || player.isEnd) {
     player.pause();
   }
 });
@@ -326,15 +331,26 @@ player.on('seeking', () => {
   player.playlist(playlist, currentIndex);
 });
 
+player.on('error', async () => {
+  console.log('error!!!');
+  await gotoPlayableVideo(player.playlist(), player.playlist.currentIndex());
+});
+
 player.on('ended', async function () {
   const playlist = this.playlist();
   const currentIndex = this.playlist.currentIndex();
   const nextIndex = this.playlist.nextIndex();
   const currentItem = playlist[currentIndex];
-  const playOn = currentItem.report.PLAY_ON;
 
   if (player.isPrimaryPlaylist) {
-    await storeLastPlayedVideo(currentIndex, playOn);
+    const videoInfo = {
+      videoIndex: currentIndex,
+      PlayOn: currentItem.report.PLAY_ON,
+      categoryId: currentItem.categoryId,
+      slotId: currentItem.slotId,
+      fileId: currentItem.report.FILE_ID,
+    };
+    await storeLastPlayedVideo(videoInfo);
   }
   if (playlist[currentIndex].periodYn === 'N') {
     console.log('periodYn is N!');
@@ -346,7 +362,7 @@ player.on('ended', async function () {
   } else if (await isCached(playlist[nextIndex].sources[0].src)) {
     console.log('video is cached, index is', nextIndex);
     if (currentIndex === nextIndex) {
-      player.play();
+      await player.play();
     }
     player.playlist.next();
   } else {
@@ -359,16 +375,14 @@ player.on('ended', async function () {
 /**
  * 마지막으로 재생된 비디오의 인덱스를 데이터베이스에 저장
  *
- * @param { number } videoIndex - 비디오 인덱스
- * @param { string } PlayOn - 비디오가 재생된 날짜, "yyyymmdd hh:MM:ss" 형식
+ * @param { Object } videoInfo - 비디오 정보
  */
-const storeLastPlayedVideo = async (videoIndex, PlayOn) => {
+const storeLastPlayedVideo = async videoInfo => {
   const storedOn = getFormattedDate(new Date());
   await db.lastPlayed.put({
     deviceId: player.deviceId,
-    videoIndex,
-    PlayOn,
     storedOn,
+    ...videoInfo,
   });
 };
 
@@ -404,11 +418,12 @@ const initPlayerPlaylist = (playlist, screen) => {
       console.log('######## last played index is', lastPlayed.videoIndex);
       await gotoPlayableVideo(playlist, lastPlayed.videoIndex);
       if (player.paused()) {
-        player.play();
+        await player.play();
       }
     })
     .catch(error => {
-      console.log('Error on getLastPlayedIndex; set the index to 0');
+      console.log('Error on getLastPlayedIndex', error);
+      console.log('set the index to 0');
     });
 };
 
@@ -430,6 +445,8 @@ async function gotoPlayableVideo(playlist, currentIndex) {
   for (let i = 0; i < sortedDistances.length; i++) {
     if (await isCached(playlist[sortedDistances[i].idx].sources[0].src)) {
       player.playlist.currentItem(sortedDistances[i].idx);
+      player.currentTime(0);
+      await player.play();
       success = true;
       console.log('go to', sortedDistances[i].idx);
       break;
@@ -437,8 +454,9 @@ async function gotoPlayableVideo(playlist, currentIndex) {
   }
   if (!success) {
     player.playlist.currentItem(currentIndex);
+    player.currentTime(0);
     console.log('go to', currentIndex);
-    player.play();
+    await player.play();
   }
 }
 
@@ -453,6 +471,9 @@ async function addReport(currentItem) {
     axios.get(currentItem.reportUrl).catch(error => {
       console.log(error);
     });
+    const cachedVideo = await caches.open(VIDEO_CACHE_NAME);
+    await cachedVideo.delete(currentItem.sources[0].src);
+    console.log('cache deleted', currentItem.sources[0].src);
   }
   let report = currentItem.report;
 
@@ -487,7 +508,7 @@ const reportAll = async () => {
     M.toast({ html: 'reports posted!' });
     db.reports.clear();
   } else {
-    console.log('report post failed!');
+    console.log('report post failed!', result);
   }
 };
 
@@ -498,6 +519,7 @@ const reportAll = async () => {
  * @param { Date } date 비디오를 재생할 날짜와 시간.
  * @param { Object } playlist 재생목록
  * @param { boolean } [isPrimary=false] true일 경우 startDate 상관없이 로직 진행
+ * @return { Cron } Cron 객체
  */
 function cronVideo(date, playlist, isPrimary = false) {
   if (playlist.length === 1 && playlist[0].isHivestack === 'Y') {
@@ -521,8 +543,8 @@ function cronVideo(date, playlist, isPrimary = false) {
         }
       },
     );
-    player.jobs.push(job);
     console.log('scheduled on', before2Min);
+    return job;
   } else {
     const job = Cron(
       date,
@@ -530,8 +552,10 @@ function cronVideo(date, playlist, isPrimary = false) {
       async (_self, context) => {
         console.log('cron context', context);
         player.playlist(context);
+        player.isEnd = false;
         if (isPrimary) {
           player.isPrimaryPlaylist = true;
+          player.primaryPlaylist = context;
           const lastPlayed = await getLastPlayedIndex();
           await gotoPlayableVideo(
             player.primaryPlaylist,
@@ -540,39 +564,37 @@ function cronVideo(date, playlist, isPrimary = false) {
         } else {
           player.isPrimaryPlaylist = false;
           player.playlist.currentItem(0);
+          player.currentTime(0);
         }
       },
     );
-    player.jobs.push(job);
     console.log('scheduled on', date);
+    return job;
   }
 }
 
 /**
  * playlist에 있는 비디오들을 fetching한 뒤 fetching에 성공할 경우 해당 비디오 schedule
+ * 성공 시 Cron 객체 반환
  *
- * @param { Date } startDate schedule 기준 일자
+ * @param { string } startDate schedule 기준 일자
  * @param { Object[] } playlist 재생목록
  * @param { boolean } [isPrimary=false] true일 경우 startDate 상관없이 로직 진행
- * @return { Promise<boolean | Error> } fetch 성공 시 true 반환
+ * @return { Promise<undefined | Cron> } schedule 성공 시 Cron 객체 반환
  */
 const scheduleVideo = async (startDate, playlist, isPrimary = false) => {
+  console.log(startDate, playlist, isPrimary);
   const hyphenStartDate = new Date(addHyphen(startDate));
   if (isPrimary) {
-    cronVideo(hyphenStartDate, playlist, true);
+    return cronVideo(hyphenStartDate, playlist, true);
   } else if (hyphenStartDate > new Date()) {
     const urls = playlist.map(v => v.sources[0].src).filter(src => src);
 
     const deduplicatedUrls = [...new Set(urls)];
-    try {
-      for (const [index, url] of deduplicatedUrls.entries()) {
-        await axios.get(url);
-      }
-      cronVideo(hyphenStartDate, playlist);
-      return true;
-    } catch (error) {
-      return error;
+    for (const [index, url] of deduplicatedUrls.entries()) {
+      await axios.get(url);
     }
+    return cronVideo(hyphenStartDate, playlist);
   }
 };
 

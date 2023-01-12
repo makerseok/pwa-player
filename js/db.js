@@ -1,5 +1,5 @@
 const dbName = 'ReportsDB';
-const dbVersion = 11;
+const dbVersion = 12;
 
 let db = new Dexie(dbName);
 
@@ -9,5 +9,5 @@ db.version(dbVersion).stores({
   caches: '++id,cachedOn,deviceId,[cachedOn+deviceId]',
   deviceIds: '++,deviceId',
   websockets: '++,event,uuid,[event+uuid]',
-  lastPlayed: 'deviceId,videoIndex',
+  lastPlayed: 'deviceId,videoIndex,category,slot,fileId',
 });

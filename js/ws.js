@@ -27,15 +27,17 @@ async function onMessageArrived(res) {
       switch (event) {
         case 'ead':
           console.log('run getEads!');
-          await getEads();
+          const eads = await getDataFromUrl(EADS_URL);
+          scheduleEads(eads);
           break;
         case 'rad':
           console.log('run getRads!');
-          await getApiResponses(true);
+          await initPlayerWithApiResponses(true);
           break;
         case 'screen':
           console.log('run getPlayerUi!');
-          await getPlayerUi();
+          const device = await getDataFromUrl(DEVICE_URL);
+          setPlayerUi(device);
           break;
 
         default:

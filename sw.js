@@ -1,5 +1,5 @@
-const STATIC_CACHE_NAME = 'site-static-90';
-const DYNAMIC_CACHE_NAME = 'site-dynamic-v81';
+const STATIC_CACHE_NAME = 'site-static-96';
+const DYNAMIC_CACHE_NAME = 'site-dynamic-v87';
 const VIDEO_CACHE_NAME = 'site-video-v4';
 const FONT_CACHE_NAME = 'site-font-v1';
 const APEX_CACHE_NAME = 'site-apex-v1';
@@ -116,7 +116,7 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
     (async () => {
-      if (event.request.url.includes('ords/podo')) {
+      if (event.request.url.includes('oraclecloudapps.com/ords')) {
         try {
           return await fetchOthers(event.request, APEX_CACHE_NAME);
         } catch (error) {
