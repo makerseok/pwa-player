@@ -307,6 +307,14 @@ player.on('loadeddata', async function () {
   this.playlist(playlist, currentIndex);
 });
 
+player.on('pause', async () => {
+  try {
+    await reportAll();
+  } catch (error) {
+    console.log('Error on reportALL');
+  }
+});
+
 player.on('play', () => {
   if (!player.isVisible) {
     player.pause();
