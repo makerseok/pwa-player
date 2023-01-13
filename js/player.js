@@ -307,14 +307,6 @@ player.on('loadeddata', async function () {
   this.playlist(playlist, currentIndex);
 });
 
-player.on('pause', async () => {
-  try {
-    await reportAll();
-  } catch (error) {
-    console.log('Error on reportALL');
-  }
-});
-
 player.on('play', () => {
   if (!player.isVisible) {
     player.pause();
@@ -403,6 +395,8 @@ const getLastPlayedIndex = async () => {
   const index = await db.lastPlayed.get(player.deviceId);
   return index || 0;
 };
+
+// function compare
 
 /**
  * player playlist 초기화
