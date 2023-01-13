@@ -387,8 +387,10 @@ function scheduleOff(off) {
   const job = Cron(hhMMssToCron(off), () => {
     console.log('cron info - play off', hhMMssToCron(off));
     player.pause();
+    if (!player.isEnd) {
+      reportAll().catch(error => console.log('Error on reportALL', error));
+    }
     player.isEnd = true;
-    reportAll().catch(error => console.log('Error on reportALL', error));
   });
   job.isEnd = true;
   return job;
