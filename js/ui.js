@@ -258,7 +258,6 @@ function renderCategoryTree(crads) {
       categoryTreeTouchEvent(this);
     });
     $(item).on('after_open.jstree', function () {
-      console.log('this', this);
       categoryNodeCancellation(this, crads);
     });
     const categoryId = $(item).data('category-id');
