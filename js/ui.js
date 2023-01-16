@@ -242,7 +242,7 @@ function createCategoryList(crads) {
           </span>
         </div>
         <div class="collapsible-body" data-category-id=${cur.CATEGORY_ID}>
-          <span>Lorem ipsum dolor sit amet.</span>
+          <span>카테고리가 비어있습니다.</span>
         </div>
       </li>
     `);
@@ -258,36 +258,41 @@ function renderCategoryTree(crads) {
       categoryTreeTouchEvent(this);
     });
     const categoryId = $(item).data('category-id');
-    const slots = crads.slots.filter(slot => slot.CATEGORY_ID === categoryId)[0]
-      .slots;
+    const filteredCrads = crads.slots.filter(
+      slot => slot.CATEGORY_ID === categoryId,
+    )[0];
 
-    const treeData = slots.reduce((acc, cur, idx) => {
-      const parentNode = {
-        id: cur.SLOT_ID,
-        parent: '#',
-        text: cur.SLOT_NAME,
-      };
+    if (filteredCrads) {
+      const slots = filteredCrads.slots;
 
-      const childNodes = cur.files.map(file => {
-        return {
-          id: `${file.SLOT_ID}-${file.RN}`,
-          parent: file.SLOT_ID,
-          text: file.D_FILE_NAME || file.TYP,
-          icon: 'jstree-file',
+      const treeData = slots.reduce((acc, cur, idx) => {
+        const parentNode = {
+          id: cur.SLOT_ID,
+          parent: '#',
+          text: cur.SLOT_NAME,
         };
-      });
-      acc.push(parentNode, ...childNodes);
-      return acc;
-    }, []);
 
-    $(item).jstree({
-      core: {
-        data: treeData,
-        themes: {
-          name: 'default-dark',
+        const childNodes = cur.files.map(file => {
+          return {
+            id: `${file.SLOT_ID}-${file.RN}`,
+            parent: file.SLOT_ID,
+            text: file.D_FILE_NAME || file.TYP,
+            icon: 'jstree-file',
+          };
+        });
+        acc.push(parentNode, ...childNodes);
+        return acc;
+      }, []);
+
+      $(item).jstree({
+        core: {
+          data: treeData,
+          themes: {
+            name: 'default-dark',
+          },
         },
-      },
-    });
+      });
+    }
   });
 }
 
