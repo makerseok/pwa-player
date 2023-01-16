@@ -257,7 +257,7 @@ function renderCategoryTree(crads) {
     $(item).on('loaded.jstree', function () {
       categoryTreeTouchEvent(this);
     });
-    $(item).on('after_open.jstree', function () {
+    $(item).on('before_open.jstree', function () {
       categoryNodeCancellation(this, crads);
     });
     const categoryId = $(item).data('category-id');
