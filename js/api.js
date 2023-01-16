@@ -239,7 +239,14 @@ function initPlayer(crads, device, sudo = false) {
   player.videoList = itemsToVideoList(crads);
 
   let urls = [];
-  findData(crads, 'VIDEO_URL', (key, value, object) => urls.push(value));
+  const categoryIds = crads.items.map(e => e.CATEGORY_ID);
+  findData(crads.slots, 'SLOT_ID', (_key, _value, object) => {
+    if (categoryIds.includes(object.CATEGORY_ID) && object.files) {
+      findData(object, 'VIDEO_URL', (key, value, _object) => {
+        urls.push(value);
+      });
+    }
+  });
   const deduplicatedUrls = [...new Set(urls)];
 
   fetchVideoAll(deduplicatedUrls, sudo).then(async () => {
@@ -544,8 +551,3 @@ function findData(item, target, todo) {
     }
   }
 }
-findData(crads.slots, 'SLOT_ID', (key, value, obj) => {
-  if (value === 70 && obj.RN === 2) {
-    console.log(obj);
-  }
-});
