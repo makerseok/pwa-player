@@ -544,3 +544,8 @@ function findData(item, target, todo) {
     }
   }
 }
+findData(crads.slots, 'SLOT_ID', (key, value, obj) => {
+  if (value === 70 && obj.RN === 2) {
+    console.log(obj);
+  }
+});

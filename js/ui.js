@@ -257,6 +257,10 @@ function renderCategoryTree(crads) {
     $(item).on('loaded.jstree', function () {
       categoryTreeTouchEvent(this);
     });
+    $(item).on('after_open.jstree', function () {
+      console.log('this', this);
+      categoryNodeCancellation(this, crads);
+    });
     const categoryId = $(item).data('category-id');
     const filteredCrads = crads.slots.filter(
       slot => slot.CATEGORY_ID === categoryId,
@@ -309,6 +313,25 @@ function categoryTreeTouchEvent(root) {
       } else {
         $(parentNode).jstree('open_node', parentId);
       }
+    });
+}
+
+function categoryNodeCancellation(root, crads) {
+  $(root)
+    .find('.jstree-anchor[aria-level="2"]')
+    .each((idx, item) => {
+      const id = $(item).parent()[0].id;
+      const [slotId, rn] = id.split('-');
+      findData(crads.slots, 'RN', (key, value, obj) => {
+        if (value == rn && obj.SLOT_ID == slotId && obj.HIVESTACK_YN === 'N') {
+          isCached(obj.VIDEO_URL).then(result => {
+            if (!result) {
+              item.classList.add('cancellation');
+              $(item).jstree().set_icon(item, 'jstree-none');
+            }
+          });
+        }
+      });
     });
 }
 

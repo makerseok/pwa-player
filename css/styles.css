@@ -166,6 +166,11 @@ nav .sidenav-trigger {
   padding-left: 3rem;
 }
 
+/* jstree */
+.cancellation {
+  text-decoration: line-through !important;
+}
+
 /* when PC device */
 @media (any-hover: hover) {
   .footer-fixed {
