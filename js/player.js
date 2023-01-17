@@ -307,7 +307,11 @@ player.on('loadeddata', async function () {
   this.playlist(playlist, currentIndex);
 });
 
-player.on('play', () => {
+player.on('play', async () => {
+  if (!(await isCached(player.src()))) {
+    player.pause();
+  }
+
   if (!player.isVisible) {
     player.pause();
   }
