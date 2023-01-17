@@ -172,40 +172,41 @@ const scheduleEads = eadData => {
     e.stop();
   });
   player.jobs = [];
-
-  eadData.items.forEach(v => {
-    const data = [
-      {
-        sources: [{ src: v.VIDEO_URL, type: 'video/mp4' }],
-        isHivestack: v.HIVESTACK_YN,
-        hivestackUrl: v.API_URL,
-        runningTime: v.RUNNING_TIME,
-        periodYn: v.PERIOD_YN,
-        report: {
-          COMPANY_ID: player.companyId,
-          DEVICE_ID: player.deviceId,
-          FILE_ID: v.FILE_ID,
-          HIVESTACK_YN: v.HIVESTACK_YN,
-          PLAY_ON: null,
+  if (eadData.items) {
+    eadData.items.forEach(v => {
+      const data = [
+        {
+          sources: [{ src: v.VIDEO_URL, type: 'video/mp4' }],
+          isHivestack: v.HIVESTACK_YN,
+          hivestackUrl: v.API_URL,
+          runningTime: v.RUNNING_TIME,
+          periodYn: v.PERIOD_YN,
+          report: {
+            COMPANY_ID: player.companyId,
+            DEVICE_ID: player.deviceId,
+            FILE_ID: v.FILE_ID,
+            HIVESTACK_YN: v.HIVESTACK_YN,
+            PLAY_ON: null,
+          },
         },
-      },
-    ];
-    console.log('schedule ead', v);
-    scheduleVideo(v.START_DT, data)
-      .then(async job => {
-        if (job) {
-          player.jobs.push(job);
-          if (v.PERIOD_YN === 'Y') {
-            player.jobs.push(
-              await scheduleVideo(v.END_DT, player.primaryPlaylist, true),
-            );
+      ];
+      console.log('schedule ead', v);
+      scheduleVideo(v.START_DT, data)
+        .then(async job => {
+          if (job) {
+            player.jobs.push(job);
+            if (v.PERIOD_YN === 'Y') {
+              player.jobs.push(
+                await scheduleVideo(v.END_DT, player.primaryPlaylist, true),
+              );
+            }
           }
-        }
-      })
-      .catch(error => {
-        console.log('error on scheduleEads', error);
-      });
-  });
+        })
+        .catch(error => {
+          console.log('error on scheduleEads', error);
+        });
+    });
+  }
 };
 
 /**
