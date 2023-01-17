@@ -25,6 +25,14 @@ async function onMessageArrived(res) {
     try {
       await db.websockets.add(result);
       switch (event) {
+        case 'ad':
+          console.log('run getEads!');
+          scheduleEads(await getDataFromUrl(EADS_URL));
+          console.log('run getRads!');
+          await initPlayerWithApiResponses(true);
+          console.log('run getPlayerUi!');
+          setPlayerUi(await getDataFromUrl(DEVICE_URL));
+          break;
         case 'ead':
           console.log('run getEads!');
           const eads = await getDataFromUrl(EADS_URL);
