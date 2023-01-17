@@ -168,10 +168,6 @@ const postWebsocketResult = async data => {
  * @param {{ code: string, message:string, items: Object[] }} eadData 서버에서 api를 통해 전달받은 긴급재생목록 정보
  */
 const scheduleEads = eadData => {
-  player.jobs.forEach(e => {
-    e.stop();
-  });
-  player.jobs = [];
   if (eadData.items) {
     eadData.items.forEach(v => {
       const data = [
@@ -191,14 +187,12 @@ const scheduleEads = eadData => {
         },
       ];
       console.log('schedule ead', v);
-      scheduleVideo(v.START_DT, data)
+      scheduleVideo(v.START_DT, data, 'ead')
         .then(async job => {
           if (job) {
             player.jobs.push(job);
             if (v.PERIOD_YN === 'Y') {
-              player.jobs.push(
-                await scheduleVideo(v.END_DT, player.primaryPlaylist, true),
-              );
+              player.jobs.push(await scheduleNextPlaylist(v.END_DT));
             }
           }
         })
@@ -252,6 +246,9 @@ function initPlayer(crads, device, sudo = false) {
 
   fetchVideoAll(deduplicatedUrls, sudo).then(async () => {
     console.log('finish fetching');
+    if (!mqtt) {
+      initWebsocket();
+    }
     renderCategoryList(crads);
     renderCategoryTree(crads);
     setDeviceConfig(deviceInfo);
@@ -261,9 +258,6 @@ function initPlayer(crads, device, sudo = false) {
     const currentTime = addHyphen(getFormattedDate(new Date()));
     removeCradJobs();
     await schedulePlaylists(playlists, currentTime);
-    if (!mqtt) {
-      initWebsocket();
-    }
   });
 }
 
@@ -311,6 +305,30 @@ const removeCradJobs = () => {
 };
 
 /**
+ * player에 저장된 모든 긴급, 반복 Jobs 정지 및 제거
+ *
+ */
+const removeJobs = () => {
+  player.jobs.forEach(e => {
+    e.stop();
+  });
+  player.jobs = [];
+};
+
+function scheduleNextPlaylist(on) {
+  const job = Cron(hhMMssToCron(on), async () => {
+    console.log('cron info - run next playlist', hhMMssToCron(on));
+    const nextPlaylist = getNextPlaylist();
+    player.playlist(nextPlaylist);
+    player.isEnd = !nextPlaylist.length;
+    const lastPlayed = await getLastPlayedIndex();
+    await gotoPlayableVideo(nextPlaylist, lastPlayed.videoIndex);
+  });
+  job.isEnd = true;
+  return job;
+}
+
+/**
  * 파라미터로 받아온 player 시작, 종료 시각 스케쥴링
  *
  * @param { string } on "HH:MM:SS" 형식의 시작 시각
@@ -339,7 +357,28 @@ async function schedulePlaylists(playlists, currentTime) {
     );
     const startDate = new Date(playlist.start);
     const hhMMssEnd = gethhMMss(new Date(playlist.end));
-    if (currentTime >= playlist.end) continue;
+    if (
+      currentTime >= playlist.end &&
+      new Date(player.runon * 1000) >= new Date(playlist.end)
+    ) {
+      const nextDayStartDate = addMinutes(startDate, 1440);
+      const nextDayStart = addHyphen(getFormattedDate(nextDayStartDate));
+      console.log('Next Day Early Playlists');
+      const overlappingDateIndex = player.cradJobs.findIndex((job, index) => {
+        return job.next().getTime() === nextDayStartDate.getTime() && job.isEnd;
+      });
+      console.log(overlappingDateIndex);
+      const job = await scheduleVideo(nextDayStart, playlist.files, 'rad');
+      if (job) {
+        if (overlappingDateIndex !== -1) {
+          player.cradJobs[overlappingDateIndex].stop();
+          player.cradJobs[overlappingDateIndex] = job;
+        } else {
+          player.cradJobs.push(job);
+        }
+        player.cradJobs.push(scheduleOff(hhMMssEnd));
+      }
+    }
     if (currentTime >= playlist.start && currentTime < playlist.end) {
       console.log(
         'currentTime >= playlist.start && currentTime < playlist.end',
@@ -353,7 +392,7 @@ async function schedulePlaylists(playlists, currentTime) {
         return job.next().getTime() === startDate.getTime() && job.isEnd;
       });
       console.log(overlappingDateIndex);
-      const job = await scheduleVideo(playlist.start, playlist.files, true);
+      const job = await scheduleVideo(playlist.start, playlist.files, 'rad');
       if (job) {
         if (overlappingDateIndex !== -1) {
           player.cradJobs[overlappingDateIndex].stop();

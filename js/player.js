@@ -216,6 +216,8 @@ let player = videojs(document.querySelector('.video-js'), {
 player.ready(async function () {
   player.defaultJobs = [];
   player.cradJobs = [];
+  player.jobs = [];
+  player.playlistQueue = [];
   console.log('player ready');
 
   const params = new URLSearchParams(location.search);
@@ -344,9 +346,10 @@ player.on('ended', async function () {
   const playlist = this.playlist();
   const currentIndex = this.playlist.currentIndex();
   const nextIndex = this.playlist.nextIndex();
+  const lastIndex = this.playlist.lastIndex();
   const currentItem = playlist[currentIndex];
 
-  if (player.isPrimaryPlaylist) {
+  if (player.type === 'rad') {
     const videoInfo = {
       videoIndex: currentIndex,
       PlayOn: currentItem.report.PLAY_ON,
@@ -356,13 +359,17 @@ player.on('ended', async function () {
     };
     await storeLastPlayedVideo(videoInfo);
   }
-  if (playlist[currentIndex].periodYn === 'N') {
+  if (
+    playlist[currentIndex].periodYn === 'N' &&
+    currentIndex === lastIndex &&
+    player.type !== 'rad'
+  ) {
     console.log('periodYn is N!');
-    console.log('primary play list is', player.primaryPlaylist);
-    player.playlist(player.primaryPlaylist);
-    player.isPrimaryPlaylist = true;
+    const nextPlaylist = getNextPlaylist();
+    console.log('primary play list is', nextPlaylist);
+    player.playlist(nextPlaylist);
     const lastPlayed = await getLastPlayedIndex();
-    await gotoPlayableVideo(player.primaryPlaylist, lastPlayed.videoIndex);
+    await gotoPlayableVideo(nextPlaylist, lastPlayed.videoIndex);
   } else if (await isCached(playlist[nextIndex].sources[0].src)) {
     console.log('video is cached, index is', nextIndex);
     if (currentIndex === nextIndex) {
@@ -414,10 +421,10 @@ const initPlayerPlaylist = (playlist, screen) => {
     return parseInt(v.runningTime) * 1000;
   });
   player.screen = screen;
-  player.primaryPlaylist = playlist;
+  player.radPlaylist = playlist;
 
   player.playlist(playlist);
-  player.isPrimaryPlaylist = true;
+  player.type = 'rad';
   player.playlist.repeat(true);
   getLastPlayedIndex()
     .then(async lastPlayed => {
@@ -518,6 +525,22 @@ const reportAll = async () => {
   }
 };
 
+function getNextPlaylist() {
+  const queues = player.playlistQueue;
+  if (!queues.length) {
+    return player.radPlaylist;
+  }
+  const padQueue = queues.filter(queue => queue.type === 'pad');
+  if (padQueue.length) {
+    return padQueue.shift().playlist;
+  }
+  const radQueue = queues.filter(queue => queue.type === 'rad');
+  if (radQueue.length) {
+    return radQueue.shift().playlist;
+  }
+  return player.radPlaylist;
+}
+
 /**
  * 해당하는 Date에 playlist 재생하도록 cron 등록
  * playlist에 있는 비디오가 hivestack 하나일 경우 재생 2분 전에 hivestack 광고 정보를 요청
@@ -527,7 +550,7 @@ const reportAll = async () => {
  * @param { boolean } [isPrimary=false] true일 경우 startDate 상관없이 로직 진행
  * @return { Cron } Cron 객체
  */
-function cronVideo(date, playlist, isPrimary = false) {
+function cronVideo(date, playlist, type) {
   if (playlist.length === 1 && playlist[0].isHivestack === 'Y') {
     const before2Min = addMinutes(date, -2);
     const job = Cron(
@@ -545,7 +568,7 @@ function cronVideo(date, playlist, isPrimary = false) {
           } catch (error) {
             console.log('error on fetching hivestack url');
           }
-          cronVideo(date, context);
+          cronVideo(date, context, type);
         }
       },
     );
@@ -557,21 +580,50 @@ function cronVideo(date, playlist, isPrimary = false) {
       { maxRuns: 1, context: playlist },
       async (_self, context) => {
         console.log('cron context', context);
-        player.playlist(context);
-        player.isEnd = false;
-        if (isPrimary) {
-          player.isPrimaryPlaylist = true;
-          player.primaryPlaylist = context;
-          const lastPlayed = await getLastPlayedIndex();
-          await gotoPlayableVideo(
-            player.primaryPlaylist,
-            lastPlayed.videoIndex,
-          );
-        } else {
-          player.isPrimaryPlaylist = false;
+        const queueItem = { type, playlist: context };
+        if (type === 'ead') {
+          player.playlist(context);
+          player.isEnd = false;
+          player.type = type;
           player.playlist.currentItem(0);
           player.currentTime(0);
+        } else if (type === 'pad') {
+          if (player.type === 'ead') {
+            player.playlistQueue.push(queueItem);
+          } else {
+            player.playlist(context);
+            player.isEnd = false;
+            player.type = type;
+            player.playlist.currentItem(0);
+            player.currentTime(0);
+          }
+        } else if (type === 'rad') {
+          if (player.type !== rad) {
+            player.playlistQueue.push(queueItem);
+          } else {
+            player.playlist(context);
+            player.isEnd = false;
+            player.type = type;
+            player.radPlaylist = context;
+            const lastPlayed = await getLastPlayedIndex();
+            await gotoPlayableVideo(context, lastPlayed.videoIndex);
+          }
         }
+        // player.playlist(context);
+        // player.isEnd = false;
+        // if (isPrimary) {
+        //   player.isPrimaryPlaylist = true;
+        //   player.primaryPlaylist = context;
+        //   const lastPlayed = await getLastPlayedIndex();
+        //   await gotoPlayableVideo(
+        //     player.primaryPlaylist,
+        //     lastPlayed.videoIndex,
+        //   );
+        // } else {
+        //   player.isPrimaryPlaylist = false;
+        //   player.playlist.currentItem(0);
+        //   player.currentTime(0);
+        // }
       },
     );
     console.log('scheduled on', date);
@@ -588,20 +640,19 @@ function cronVideo(date, playlist, isPrimary = false) {
  * @param { boolean } [isPrimary=false] true일 경우 startDate 상관없이 로직 진행
  * @return { Promise<undefined | Cron> } schedule 성공 시 Cron 객체 반환
  */
-const scheduleVideo = async (startDate, playlist, isPrimary = false) => {
-  console.log(startDate, playlist, isPrimary);
+const scheduleVideo = async (startDate, playlist, type) => {
   const hyphenStartDate = new Date(addHyphen(startDate));
-  if (isPrimary) {
-    return cronVideo(hyphenStartDate, playlist, true);
-  } else if (hyphenStartDate > new Date()) {
-    const urls = playlist.map(v => v.sources[0].src).filter(src => src);
+  const urls = playlist.map(v => v.sources[0].src).filter(src => src);
 
-    const deduplicatedUrls = [...new Set(urls)];
-    for (const [index, url] of deduplicatedUrls.entries()) {
+  const deduplicatedUrls = [...new Set(urls)];
+  for (const [index, url] of deduplicatedUrls.entries()) {
+    try {
       await axios.get(url);
+    } catch (error) {
+      console.log('Error when fetching scheduled video', error);
     }
-    return cronVideo(hyphenStartDate, playlist);
   }
+  return cronVideo(hyphenStartDate, playlist, type);
 };
 
 /**
