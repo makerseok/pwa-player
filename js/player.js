@@ -588,9 +588,7 @@ function cronVideo(date, playlist, type) {
           player.playlist.currentItem(0);
           player.currentTime(0);
         } else if (type === 'pad') {
-          if (player.type === 'ead') {
-            player.playlistQueue.push(queueItem);
-          } else {
+          if (player.type === 'rad') {
             player.playlist(context);
             player.isEnd = false;
             player.type = type;
@@ -626,7 +624,7 @@ function cronVideo(date, playlist, type) {
         // }
       },
     );
-    console.log('scheduled on', date);
+    console.log('scheduled on', date, type);
     return job;
   }
 }
