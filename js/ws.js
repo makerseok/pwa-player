@@ -26,27 +26,13 @@ async function onMessageArrived(res) {
       await db.websockets.add(result);
       switch (event) {
         case 'ad':
-          console.log('run getRads!');
+          console.log('run ad!!');
           await initPlayerWithApiResponses(true);
-          console.log('run getEads!');
-          removeCeadJobs();
-          scheduleCeads(await getDataFromUrl(CEADS_URL));
-          console.log('run getPlayerUi!');
+          // console.log('run getEads!');
+          // removeCeadJobs();
+          // scheduleCeads(await getDataFromUrl(CEADS_URL));
+          // console.log('run getPlayerUi!');
           setPlayerUi(await getDataFromUrl(DEVICE_URL));
-          break;
-        case 'ead':
-          console.log('run getEads!');
-          const eads = await getDataFromUrl(CEADS_URL);
-          scheduleCeads(eads);
-          break;
-        case 'rad':
-          console.log('run getRads!');
-          await initPlayerWithApiResponses(true);
-          break;
-        case 'screen':
-          console.log('run getPlayerUi!');
-          const device = await getDataFromUrl(DEVICE_URL);
-          setPlayerUi(device);
           break;
 
         default:

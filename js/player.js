@@ -217,6 +217,7 @@ player.ready(async function () {
   player.defaultJobs = [];
   player.cradJobs = [];
   player.ceadJobs = [];
+  player.cpadJobs = [];
   player.playlistQueue = [];
   console.log('player ready');
 

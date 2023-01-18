@@ -7,6 +7,7 @@ const RADS_URL = 'rads';
 const CRADS_URL = 'crads';
 const EADS_URL = 'eads';
 const CEADS_URL = 'ceads';
+const CPADS_URL = 'cpads';
 const REPORT_URL = 'report';
 const WEBSOCKET_URL = 'websocket';
 
@@ -43,9 +44,13 @@ const initPlayerWithApiResponses = async (sudo = false) => {
     const crads = await getDataFromUrl(CRADS_URL);
     const device = await getDataFromUrl(DEVICE_URL);
     const ceads = await getDataFromUrl(CEADS_URL);
+    const cpads = await getDataFromUrl(CPADS_URL);
 
     await initPlayer(crads, device, sudo);
+    removeCeadJobs();
+    removeCpadJobs();
     scheduleCeads(ceads);
+    scheduleCpads(cpads);
   } catch (error) {
     console.log(error);
   }
@@ -196,6 +201,30 @@ const scheduleCeads = eadData => {
 };
 
 /**
+ * 반복재생목록 schedule 함수
+ *
+ * @param {{ code: string, message:string, items: Object[] }} cpads 서버에서 api를 통해 전달받은 긴급재생목록 정보
+ */
+const scheduleCpads = cpads => {
+  if (!cpads.slots.length) {
+    return;
+  }
+  const playlists = cpadsToPlaylists(cpads);
+  playlists.forEach(playlist => {
+    console.log('try scheduling', playlist);
+    scheduleVideo(playlist.start, playlist.files, 'ead')
+      .then(async job => {
+        if (job) {
+          player.cpadJobs.push(job);
+        }
+      })
+      .catch(error => {
+        console.log('error on scheduleCpads', error);
+      });
+  });
+};
+
+/**
  * 일반재생목록과 플레이어 정보를 받아 UI 및 player를 초기화
  *
  * @param { Object[] } crads 서버에서 api를 통해 전달받은 일반재생목록 정보
@@ -309,6 +338,17 @@ const removeCeadJobs = () => {
   player.ceadJobs = [];
 };
 
+/**
+ * player에 저장된 모든 긴급, 반복 Jobs 정지 및 제거
+ *
+ */
+const removeCpadJobs = () => {
+  player.cpadJobs.forEach(e => {
+    e.stop();
+  });
+  player.cpadJobs = [];
+};
+
 function scheduleNextPlaylist(on) {
   const job = Cron(new Date(addHyphen(on)), async () => {
     console.log('cron info - run next playlist', on);
@@ -355,8 +395,7 @@ async function schedulePlaylists(playlists, currentTime) {
       currentTime >= playlist.end &&
       new Date(player.runon * 1000) >= new Date(playlist.end)
     ) {
-      const nextDayStartDate = addMinutes(startDate, 1440);
-      const nextDayStart = addHyphen(getFormattedDate(nextDayStartDate));
+      const nextDayStart = formatDatePlayAtDawn(playlist.start);
       console.log('Next Day Early Playlists');
       const overlappingDateIndex = player.cradJobs.findIndex((job, index) => {
         return job.next().getTime() === nextDayStartDate.getTime() && job.isEnd;
@@ -476,6 +515,45 @@ function cradsToPlaylists(crads) {
     };
   });
   return playlists;
+}
+
+/**
+ * api response data 값을 파라미터로 넣을 시 category별로 data를 매칭한 Array 반환
+ *
+ * @param { Object[] } cpads
+ * @return { Object[] } 카테고리별 비디오 데이터
+ */
+function cpadsToPlaylists(cpads) {
+  const slots = cpads.slots.map(originSlot => {
+    const playlist = formatSlotToPlaylist(originSlot);
+    playlist.files = playlist.files.map(file => {
+      return { periodYn: 'N', ...file };
+    });
+    return playlist;
+  });
+  const playlists = cpads.items.map(item => {
+    const filteredSlots = slots.filter(
+      slot => slot.categoryId === item.CATEGORY_ID,
+    );
+    const startDate = formatDatePlayAtDawn(item.START_DT);
+    return {
+      categoryId: item.CATEGORY_ID,
+      categoryName: item.CATEGORY_NAME,
+      start: startDate,
+      files: filteredSlots.length ? filteredSlots[0].files : [],
+    };
+  });
+  return playlists;
+}
+
+function formatDatePlayAtDawn(dateString) {
+  const hyphenDate = addHyphen(dateString);
+  if (new Date(player.runon * 1000) >= new Date(hyphenDate)) {
+    const nextDayStartDate = addMinutes(new Date(hyphenDate), 1440);
+    return addHyphen(getFormattedDate(nextDayStartDate));
+  } else {
+    return hyphenDate;
+  }
 }
 
 /**
