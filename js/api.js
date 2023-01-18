@@ -302,11 +302,11 @@ const removeCradJobs = () => {
  * player에 저장된 모든 긴급, 반복 Jobs 정지 및 제거
  *
  */
-const removeJobs = () => {
-  player.jobs.forEach(e => {
+const removeCeadJobs = () => {
+  player.ceadJobs.forEach(e => {
     e.stop();
   });
-  player.jobs = [];
+  player.ceadJobs = [];
 };
 
 function scheduleNextPlaylist(on) {

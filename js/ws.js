@@ -29,7 +29,7 @@ async function onMessageArrived(res) {
           console.log('run getRads!');
           await initPlayerWithApiResponses(true);
           console.log('run getEads!');
-          removeJobs();
+          removeCeadJobs();
           scheduleCeads(await getDataFromUrl(CEADS_URL));
           console.log('run getPlayerUi!');
           setPlayerUi(await getDataFromUrl(DEVICE_URL));

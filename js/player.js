@@ -216,7 +216,7 @@ let player = videojs(document.querySelector('.video-js'), {
 player.ready(async function () {
   player.defaultJobs = [];
   player.cradJobs = [];
-  player.jobs = [];
+  player.ceadJobs = [];
   player.playlistQueue = [];
   console.log('player ready');
 
