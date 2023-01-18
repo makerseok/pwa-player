@@ -41,7 +41,10 @@ const initPlayerWithApiResponses = async (sudo = false) => {
   try {
     const crads = await getDataFromUrl(CRADS_URL);
     const device = await getDataFromUrl(DEVICE_URL);
-    initPlayer(crads, device, sudo);
+    const ceads = await getDataFromUrl(EADS_URL);
+
+    await initPlayer(crads, device, sudo);
+    scheduleEads(ceads);
   } catch (error) {
     console.log(error);
   }
@@ -198,7 +201,7 @@ const scheduleEads = eadData => {
  * @param { Object } device 서버에서 api를 통해 전달받은 플레이어 정보
  * @param { boolean } [sudo=false] true일 시 cached 여부에 상관없이 캐싱되지 않은 비디오 fetch
  */
-function initPlayer(crads, device, sudo = false) {
+async function initPlayer(crads, device, sudo = false) {
   player.playlist([]);
   const { code, message, device_id, company_id, ...deviceInfo } = device;
   const { on, off, top, left, width, height, locked, call_time } = deviceInfo;
@@ -231,8 +234,8 @@ function initPlayer(crads, device, sudo = false) {
     }
   });
   const deduplicatedUrls = [...new Set(urls)];
-
-  fetchVideoAll(deduplicatedUrls, sudo).then(async () => {
+  try {
+    await fetchVideoAll(deduplicatedUrls, sudo);
     console.log('finish fetching');
     if (!mqtt) {
       initWebsocket();
@@ -246,7 +249,9 @@ function initPlayer(crads, device, sudo = false) {
     const currentTime = addHyphen(getFormattedDate(new Date()));
     removeCradJobs();
     await schedulePlaylists(playlists, currentTime);
-  });
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 /**
