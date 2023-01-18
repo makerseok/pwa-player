@@ -362,7 +362,7 @@ player.on('ended', async function () {
   }
   if (
     playlist[currentIndex].periodYn === 'N' &&
-    currentIndex === lastIndex &&
+    currentIndex === (await getPlayableVideo(playlist, currentIndex)) &&
     player.type !== 'rad'
   ) {
     console.log('periodYn is N!');
@@ -442,12 +442,12 @@ const initPlayerPlaylist = (playlist, screen) => {
 };
 
 /**
- * 가장 가까운 캐시되어있는 비디오로 이동
+ * 가장 가까운 캐시되어있는 비디오 index 반환
  *
  * @param { Object[] } playlist 재생목록
  * @param { number } currentIndex 현재 index
  */
-async function gotoPlayableVideo(playlist, currentIndex) {
+async function getPlayableVideo(playlist, currentIndex) {
   const distances = playlist.map((e, idx) => {
     return { distance: idx - currentIndex, idx: idx };
   });
@@ -458,20 +458,26 @@ async function gotoPlayableVideo(playlist, currentIndex) {
   let success = false;
   for (let i = 0; i < sortedDistances.length; i++) {
     if (await isCached(playlist[sortedDistances[i].idx].sources[0].src)) {
-      player.playlist.currentItem(sortedDistances[i].idx);
-      player.currentTime(0);
-      await player.play();
-      success = true;
-      console.log('go to', sortedDistances[i].idx);
-      break;
+      return sortedDistances[i].idx;
     }
   }
   if (!success) {
-    player.playlist.currentItem(currentIndex);
-    player.currentTime(0);
-    console.log('go to', currentIndex);
-    await player.play();
+    return currentIndex;
   }
+}
+
+/**
+ * 가장 가까운 캐시되어있는 비디오로 이동
+ *
+ * @param { Object[] } playlist 재생목록
+ * @param { number } currentIndex 현재 index
+ */
+async function gotoPlayableVideo(playlist, currentIndex) {
+  const targetIndex = await getPlayableVideo(playlist, currentIndex);
+  player.playlist.currentItem(targetIndex);
+  player.currentTime(0);
+  console.log('go to', currentIndex);
+  await player.play();
 }
 
 /**
@@ -652,7 +658,7 @@ const scheduleVideo = async (startDate, playlist, type) => {
     try {
       const response = await axios.get(url);
       if (response.status === 200) {
-      cachedCount++;
+        cachedCount++;
       }
     } catch (error) {
       console.log('Error when fetching scheduled video', error);
