@@ -187,9 +187,9 @@ const scheduleCeads = eadData => {
       scheduleVideo(slot.START_DT, files, 'ead')
         .then(async job => {
           if (job) {
-            player.jobs.push(job);
+            player.ceadJobs.push(job);
             if (slot.MULTI_YN === 'Y') {
-              player.jobs.push(await scheduleNextPlaylist(slot.END_DT));
+              player.ceadJobs.push(await scheduleNextPlaylist(slot.END_DT));
             }
           }
         })
@@ -213,7 +213,7 @@ const scheduleCpads = async cpads => {
   for (playlist of playlists) {
     console.log('try scheduling', playlist);
     try {
-      const job = await scheduleVideo(playlist.start, playlist.files, 'ead');
+      const job = await scheduleVideo(playlist.start, playlist.files, 'pad');
       if (job) {
         player.cpadJobs.push(job);
       }
