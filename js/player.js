@@ -366,7 +366,7 @@ player.on('ended', async function () {
   ) {
     console.log('periodYn is N!');
     const nextPlaylist = getNextPlaylist();
-    console.log('primary play list is', nextPlaylist);
+    console.log('next playlist is', nextPlaylist);
     player.playlist(nextPlaylist);
     const lastPlayed = await getLastPlayedIndex();
     await gotoPlayableVideo(nextPlaylist, lastPlayed.videoIndex);
@@ -598,7 +598,7 @@ function cronVideo(date, playlist, type) {
             player.currentTime(0);
           }
         } else if (type === 'rad') {
-          if (player.type !== rad) {
+          if (player.type !== 'rad') {
             player.playlistQueue.push(queueItem);
           } else {
             player.playlist(context);
@@ -645,12 +645,17 @@ const scheduleVideo = async (startDate, playlist, type) => {
   const urls = playlist.map(v => v.sources[0].src).filter(src => src);
 
   const deduplicatedUrls = [...new Set(urls)];
+  let cachedCount = 0;
   for (const [index, url] of deduplicatedUrls.entries()) {
     try {
       await axios.get(url);
+      cachedCount++;
     } catch (error) {
       console.log('Error when fetching scheduled video', error);
     }
+  }
+  if (type !== 'rad' && !cachedCount) {
+    return false;
   }
   return cronVideo(hyphenStartDate, playlist, type);
 };

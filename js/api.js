@@ -168,31 +168,19 @@ const postWebsocketResult = async data => {
  * @param {{ code: string, message:string, items: Object[] }} eadData 서버에서 api를 통해 전달받은 긴급재생목록 정보
  */
 const scheduleEads = eadData => {
-  if (eadData.items) {
-    eadData.items.forEach(v => {
-      const data = [
-        {
-          sources: [{ src: v.VIDEO_URL, type: 'video/mp4' }],
-          isHivestack: v.HIVESTACK_YN,
-          hivestackUrl: v.API_URL,
-          runningTime: v.RUNNING_TIME,
-          periodYn: v.PERIOD_YN,
-          report: {
-            COMPANY_ID: player.companyId,
-            DEVICE_ID: player.deviceId,
-            FILE_ID: v.FILE_ID,
-            HIVESTACK_YN: v.HIVESTACK_YN,
-            PLAY_ON: null,
-          },
-        },
-      ];
-      console.log('schedule ead', v);
-      scheduleVideo(v.START_DT, data, 'ead')
+  if (eadData.slots.length) {
+    eadData.slots.forEach(slot => {
+      const playlist = formatSlotToPlaylist(slot);
+      const files = playlist.files.map(file => {
+        return { periodYn: slot.MULTI_YN, ...file };
+      });
+      console.log('try scheduling', files);
+      scheduleVideo(slot.START_DT, files, 'ead')
         .then(async job => {
           if (job) {
             player.jobs.push(job);
-            if (v.PERIOD_YN === 'Y') {
-              player.jobs.push(await scheduleNextPlaylist(v.END_DT));
+            if (slot.MULTI_YN === 'Y') {
+              player.jobs.push(await scheduleNextPlaylist(slot.END_DT));
             }
           }
         })
@@ -316,8 +304,8 @@ const removeJobs = () => {
 };
 
 function scheduleNextPlaylist(on) {
-  const job = Cron(hhMMssToCron(on), async () => {
-    console.log('cron info - run next playlist', hhMMssToCron(on));
+  const job = Cron(new Date(addHyphen(on)), async () => {
+    console.log('cron info - run next playlist', on);
     const nextPlaylist = getNextPlaylist();
     player.playlist(nextPlaylist);
     player.isEnd = !nextPlaylist.length;
