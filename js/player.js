@@ -641,6 +641,9 @@ function cronVideo(date, playlist, type) {
  */
 const scheduleVideo = async (startDate, playlist, type) => {
   const hyphenStartDate = new Date(addHyphen(startDate));
+  if (hyphenStartDate < new Date()) {
+    return false;
+  }
   const urls = playlist.map(v => v.sources[0].src).filter(src => src);
 
   const deduplicatedUrls = [...new Set(urls)];
