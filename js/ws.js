@@ -30,14 +30,14 @@ async function onMessageArrived(res) {
           await initPlayerWithApiResponses(true);
           console.log('run getEads!');
           removeJobs();
-          scheduleEads(await getDataFromUrl(EADS_URL));
+          scheduleCeads(await getDataFromUrl(CEADS_URL));
           console.log('run getPlayerUi!');
           setPlayerUi(await getDataFromUrl(DEVICE_URL));
           break;
         case 'ead':
           console.log('run getEads!');
-          const eads = await getDataFromUrl(EADS_URL);
-          scheduleEads(eads);
+          const eads = await getDataFromUrl(CEADS_URL);
+          scheduleCeads(eads);
           break;
         case 'rad':
           console.log('run getRads!');

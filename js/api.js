@@ -6,6 +6,7 @@ const POSITION_LOCKED_URL = 'devices/position/locked';
 const RADS_URL = 'rads';
 const CRADS_URL = 'crads';
 const EADS_URL = 'eads';
+const CEADS_URL = 'ceads';
 const REPORT_URL = 'report';
 const WEBSOCKET_URL = 'websocket';
 
@@ -41,10 +42,10 @@ const initPlayerWithApiResponses = async (sudo = false) => {
   try {
     const crads = await getDataFromUrl(CRADS_URL);
     const device = await getDataFromUrl(DEVICE_URL);
-    const ceads = await getDataFromUrl(EADS_URL);
+    const ceads = await getDataFromUrl(CEADS_URL);
 
     await initPlayer(crads, device, sudo);
-    scheduleEads(ceads);
+    scheduleCeads(ceads);
   } catch (error) {
     console.log(error);
   }
@@ -170,7 +171,7 @@ const postWebsocketResult = async data => {
  *
  * @param {{ code: string, message:string, items: Object[] }} eadData 서버에서 api를 통해 전달받은 긴급재생목록 정보
  */
-const scheduleEads = eadData => {
+const scheduleCeads = eadData => {
   if (eadData.slots.length) {
     eadData.slots.forEach(slot => {
       const playlist = formatSlotToPlaylist(slot);
