@@ -50,7 +50,7 @@ const initPlayerWithApiResponses = async (sudo = false) => {
     removeCeadJobs();
     removeCpadJobs();
     scheduleCeads(ceads);
-    scheduleCpads(cpads);
+    await scheduleCpads(cpads);
   } catch (error) {
     console.log(error);
   }
@@ -205,23 +205,22 @@ const scheduleCeads = eadData => {
  *
  * @param {{ code: string, message:string, items: Object[] }} cpads 서버에서 api를 통해 전달받은 긴급재생목록 정보
  */
-const scheduleCpads = cpads => {
+const scheduleCpads = async cpads => {
   if (!cpads.slots.length) {
     return;
   }
   const playlists = cpadsToPlaylists(cpads);
-  playlists.forEach(playlist => {
+  for (playlist of playlists) {
     console.log('try scheduling', playlist);
-    scheduleVideo(playlist.start, playlist.files, 'ead')
-      .then(async job => {
-        if (job) {
-          player.cpadJobs.push(job);
-        }
-      })
-      .catch(error => {
-        console.log('error on scheduleCpads', error);
-      });
-  });
+    try {
+      const job = await scheduleVideo(playlist.start, playlist.files, 'ead');
+      if (job) {
+        player.cpadJobs.push(job);
+      }
+    } catch (error) {
+      console.log('error on scheduleCpads', error);
+    }
+  }
 };
 
 /**

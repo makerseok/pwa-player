@@ -650,8 +650,10 @@ const scheduleVideo = async (startDate, playlist, type) => {
   let cachedCount = 0;
   for (const [index, url] of deduplicatedUrls.entries()) {
     try {
-      await axios.get(url);
+      const response = await axios.get(url);
+      if (response.status === 200) {
       cachedCount++;
+      }
     } catch (error) {
       console.log('Error when fetching scheduled video', error);
     }
