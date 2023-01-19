@@ -362,7 +362,7 @@ player.on('ended', async function () {
   }
   if (
     playlist[currentIndex].periodYn === 'N' &&
-    currentIndex === (await getPlayableVideo(playlist, currentIndex)) &&
+    currentIndex >= (await getPlayableVideo(playlist, currentIndex)) &&
     player.type !== 'rad'
   ) {
     console.log('periodYn is N!');
