@@ -368,9 +368,10 @@ player.on('ended', async function () {
     console.log('periodYn is N!');
     const nextPlaylist = getNextPlaylist();
     console.log('next playlist is', nextPlaylist);
-    player.playlist(nextPlaylist);
+    player.type = nextPlaylist.type;
+    player.playlist(nextPlaylist.playlist);
     const lastPlayed = await getLastPlayedIndex();
-    await gotoPlayableVideo(nextPlaylist, lastPlayed.videoIndex);
+    await gotoPlayableVideo(nextPlaylist.playlist, lastPlayed.videoIndex);
   } else if (await isCached(playlist[nextIndex].sources[0].src)) {
     console.log('video is cached, index is', nextIndex);
     if (currentIndex === nextIndex) {
@@ -534,18 +535,19 @@ const reportAll = async () => {
 
 function getNextPlaylist() {
   const queues = player.playlistQueue;
+  const defaultPlaylist = { type: 'rad', playlist: player.radPlaylist };
   if (!queues.length) {
-    return player.radPlaylist;
+    return defaultPlaylist;
   }
   const padQueue = queues.filter(queue => queue.type === 'pad');
   if (padQueue.length) {
-    return padQueue.shift().playlist;
+    return padQueue.shift();
   }
   const radQueue = queues.filter(queue => queue.type === 'rad');
   if (radQueue.length) {
-    return radQueue.shift().playlist;
+    return radQueue.shift();
   }
-  return player.radPlaylist;
+  return defaultPlaylist;
 }
 
 /**

@@ -352,10 +352,11 @@ function scheduleNextPlaylist(on) {
   const job = Cron(new Date(addHyphen(on)), async () => {
     console.log('cron info - run next playlist', on);
     const nextPlaylist = getNextPlaylist();
-    player.playlist(nextPlaylist);
-    player.isEnd = !nextPlaylist.length;
+    player.type = nextPlaylist.type;
+    player.playlist(nextPlaylist.playlist);
+    player.isEnd = !nextPlaylist.playlist.length;
     const lastPlayed = await getLastPlayedIndex();
-    await gotoPlayableVideo(nextPlaylist, lastPlayed.videoIndex);
+    await gotoPlayableVideo(nextPlaylist.playlist, lastPlayed.videoIndex);
   });
   job.isEnd = true;
   return job;
