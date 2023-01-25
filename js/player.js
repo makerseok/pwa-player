@@ -370,7 +370,7 @@ player.on('ended', async function () {
     console.log('next playlist is', nextPlaylist);
     player.type = nextPlaylist.type;
     player.playlist(nextPlaylist.playlist);
-    const lastPlayed = await getLastPlayedIndex();
+    const lastPlayed = await getLastPlayedIndex(nextPlaylist.playlist);
     await gotoPlayableVideo(nextPlaylist.playlist, lastPlayed.videoIndex);
   } else if (await isCached(playlist[nextIndex].sources[0].src)) {
     console.log('video is cached, index is', nextIndex);
@@ -404,10 +404,39 @@ const storeLastPlayedVideo = async videoInfo => {
  *
  * @return { Promise<number> } 마지막으로 재생된 비디오 인덱스
  */
-const getLastPlayedIndex = async () => {
-  const index = await db.lastPlayed.get(player.deviceId);
-  return index || 0;
-};
+async function getLastPlayedIndex(playlists) {
+  try {
+    const lastPlayed = await db.lastPlayed.get(player.deviceId);
+    const indexedPlaylist = playlists.map((element, idx) => {
+      return { idx, ...element };
+    });
+    const companyIdPlaylists = indexedPlaylist.filter((video, idx) => {
+      return video.companyId === lastPlayed.companyId;
+    });
+    if (companyIdPlaylists.length === 0) {
+      return 0;
+    }
+    const slotIdPlaylists = companyIdPlaylists.filter((video, idx) => {
+      return video.slotId === lastPlayed.slotId;
+    });
+    if (slotIdPlaylists.length === 0) {
+      return companyIdPlaylists[0].idx;
+    }
+    const fileIdPlaylists = slotIdPlaylists.filter((video, idx) => {
+      return (
+        video.report.fileId === lastPlayed.fileId &&
+        video.idx === lastPlayed.videoIndex
+      );
+    });
+    if (fileIdPlaylists.length === 0) {
+      return slotIdPlaylists[0].idx;
+    }
+    return fileIdPlaylists[0].idx;
+  } catch (error) {
+    console.log('Error on getLastPlayedIndex', error);
+    return 0;
+  }
+}
 
 // function compare
 
@@ -428,7 +457,7 @@ const initPlayerPlaylist = (playlist, screen) => {
   player.playlist(playlist);
   player.type = 'rad';
   player.playlist.repeat(true);
-  getLastPlayedIndex()
+  getLastPlayedIndex(playlist)
     .then(async lastPlayed => {
       console.log('######## last played index is', lastPlayed.videoIndex);
       await gotoPlayableVideo(playlist, lastPlayed.videoIndex);
@@ -615,7 +644,7 @@ function cronVideo(date, playlist, type) {
             player.isEnd = false;
             player.type = type;
             player.radPlaylist = context;
-            const lastPlayed = await getLastPlayedIndex();
+            const lastPlayed = await getLastPlayedIndex(context);
             await gotoPlayableVideo(context, lastPlayed.videoIndex);
           }
         }

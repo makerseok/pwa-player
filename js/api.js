@@ -355,7 +355,7 @@ function scheduleNextPlaylist(on) {
     player.type = nextPlaylist.type;
     player.playlist(nextPlaylist.playlist);
     player.isEnd = !nextPlaylist.playlist.length;
-    const lastPlayed = await getLastPlayedIndex();
+    const lastPlayed = await getLastPlayedIndex(nextPlaylist.playlist);
     await gotoPlayableVideo(nextPlaylist.playlist, lastPlayed.videoIndex);
   });
   job.isEnd = true;
