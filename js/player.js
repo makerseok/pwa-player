@@ -591,6 +591,7 @@ function cronVideo(date, playlist, type) {
         console.log('cron context', context);
         console.log('schedule type', type);
         console.log('player type', player.type);
+        console.log('player isEnd', player.isEnd);
         const queueItem = { type, playlist: context };
         if (type === 'ead') {
           player.playlist(context);
