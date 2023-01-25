@@ -407,6 +407,9 @@ const storeLastPlayedVideo = async videoInfo => {
 async function getLastPlayedIndex(playlists) {
   try {
     const lastPlayed = await db.lastPlayed.get(player.deviceId);
+    if (!lastPlayed) {
+      return 0;
+    }
     const indexedPlaylist = playlists.map((element, idx) => {
       return { idx, ...element };
     });
