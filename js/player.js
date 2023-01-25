@@ -410,17 +410,17 @@ async function getLastPlayedIndex(playlists) {
     const indexedPlaylist = playlists.map((element, idx) => {
       return { idx, ...element };
     });
-    const companyIdPlaylists = indexedPlaylist.filter((video, idx) => {
-      return video.companyId === lastPlayed.companyId;
+    const categoryIdPlaylists = indexedPlaylist.filter((video, idx) => {
+      return video.categoryId === lastPlayed.categoryId;
     });
-    if (companyIdPlaylists.length === 0) {
+    if (categoryIdPlaylists.length === 0) {
       return 0;
     }
-    const slotIdPlaylists = companyIdPlaylists.filter((video, idx) => {
+    const slotIdPlaylists = categoryIdPlaylists.filter((video, idx) => {
       return video.slotId === lastPlayed.slotId;
     });
     if (slotIdPlaylists.length === 0) {
-      return companyIdPlaylists[0].idx;
+      return categoryIdPlaylists[0].idx;
     }
     const fileIdPlaylists = slotIdPlaylists.filter((video, idx) => {
       return (
