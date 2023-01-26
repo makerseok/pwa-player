@@ -55,7 +55,7 @@ nav .sidenav-trigger {
   padding: 0px !important;
 }
 
-@media (any-hover: hover) {
+@media (pointer: fine) {
   .info.video-info {
     border-right: 1px solid var(--secondary);
     width: 66.6666666667%;
@@ -70,7 +70,7 @@ nav .sidenav-trigger {
   }
 }
 
-@media (any-hover: none) {
+@media not (pointer: fine) {
   .info.video-info {
     width: 100%;
     margin-left: auto;
@@ -172,14 +172,14 @@ nav .sidenav-trigger {
 }
 
 /* when PC device */
-@media (any-hover: hover) {
+@media (pointer: fine) {
   .footer-fixed {
     display: none;
   }
 }
 
 /* when mobile device */
-@media (any-hover: none) {
+@media not (pointer: fine) {
   /* footer navbar */
   .footer-fixed {
     position: fixed;

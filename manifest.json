@@ -3,7 +3,7 @@
   "short_name": "ADWright",
   "start_url": "https://makerseok.github.io/dev-pwa-video-player/index.html",
   "display": "standalone",
-  "background_color": "#B388FF",
+  "background_color": "#1f2a66",
   "theme_color": "#B388FF",
   "orientation": "portrait-primary",
   "icons": [
