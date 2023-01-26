@@ -1,8 +1,7 @@
 {
   "name": "AD Wright",
   "short_name": "ADWright",
-  "id": "index.html",
-  "start_url": "index.html",
+  "start_url": "https://makerseok.github.io/dev-pwa-video-player/index.html",
   "display": "standalone",
   "background_color": "#B388FF",
   "theme_color": "#B388FF",
