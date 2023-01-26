@@ -4,7 +4,7 @@
   "start_url": "https://makerseok.github.io/dev-pwa-video-player/index.html",
   "display": "standalone",
   "background_color": "#1f2a66",
-  "theme_color": "#B388FF",
+  "theme_color": "#212121",
   "orientation": "natural",
   "icons": [
     {
