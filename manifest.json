@@ -1,47 +1,117 @@
 {
-  "name": "PWA Video Player",
-  "short_name": "PWAVideoPlayer",
+  "name": "AD Wright",
+  "short_name": "ADWright",
+  "id": "index.html",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#FFE0D2",
-  "theme_color": "#FFE1C4",
+  "background_color": "#B388FF",
+  "theme_color": "#B388FF",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "img/icons/android-icon-72x72.png",
-      "type": "image/png",
-      "sizes": "72x72"
-    },
-    {
-      "src": "img/icons/android-icon-144x144.png",
-      "type": "image/png",
-      "sizes": "144x144"
-    },
-    {
-      "src": "img/icons/android-icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "img/icons/favicon-96x96.png",
-      "type": "image/png",
-      "sizes": "96x96"
-    },
-    {
-      "src": "img/icons/favicon-16x16.png",
-      "type": "image/png",
+      "src": "img/icons/16.png",
       "sizes": "16x16"
     },
     {
-      "src": "img/icons/favicon-32x32.png",
-      "type": "image/png",
+      "src": "img/icons/20.png",
+      "sizes": "20x20"
+    },
+    {
+      "src": "img/icons/29.png",
+      "sizes": "29x29"
+    },
+    {
+      "src": "img/icons/32.png",
       "sizes": "32x32"
     },
     {
-      "src": "img/icons/icon-512x512.png",
-      "type": "image/png",
+      "src": "img/icons/40.png",
+      "sizes": "40x40"
+    },
+    {
+      "src": "img/icons/50.png",
+      "sizes": "50x50"
+    },
+    {
+      "src": "img/icons/57.png",
+      "sizes": "57x57"
+    },
+    {
+      "src": "img/icons/58.png",
+      "sizes": "58x58"
+    },
+    {
+      "src": "img/icons/60.png",
+      "sizes": "60x60"
+    },
+    {
+      "src": "img/icons/64.png",
+      "sizes": "64x64"
+    },
+    {
+      "src": "img/icons/72.png",
+      "sizes": "72x72"
+    },
+    {
+      "src": "img/icons/76.png",
+      "sizes": "76x76"
+    },
+    {
+      "src": "img/icons/80.png",
+      "sizes": "80x80"
+    },
+    {
+      "src": "img/icons/87.png",
+      "sizes": "87x87"
+    },
+    {
+      "src": "img/icons/100.png",
+      "sizes": "100x100"
+    },
+    {
+      "src": "img/icons/114.png",
+      "sizes": "114x114"
+    },
+    {
+      "src": "img/icons/120.png",
+      "sizes": "120x120"
+    },
+    {
+      "src": "img/icons/128.png",
+      "sizes": "128x128"
+    },
+    {
+      "src": "img/icons/144.png",
+      "sizes": "144x144"
+    },
+    {
+      "src": "img/icons/152.png",
+      "sizes": "152x152"
+    },
+    {
+      "src": "img/icons/167.png",
+      "sizes": "167x167"
+    },
+    {
+      "src": "img/icons/180.png",
+      "sizes": "180x180"
+    },
+    {
+      "src": "img/icons/192.png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "img/icons/256.png",
+      "sizes": "256x256"
+    },
+    {
+      "src": "img/icons/512.png",
       "sizes": "512x512"
+    },
+    {
+      "src": "img/icons/1024.png",
+      "sizes": "1024x1024"
     }
   ]
 }
