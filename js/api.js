@@ -46,6 +46,24 @@ const initPlayerWithApiResponses = async (sudo = false) => {
     const ceads = await getDataFromUrl(CEADS_URL);
     const cpads = await getDataFromUrl(CPADS_URL);
 
+    const usingUrls = [];
+    usingUrls.push(...getFilteredVideoUrl(crads));
+    usingUrls.push(...getFilteredVideoUrl(cpads));
+    usingUrls.push(...getVideoUrl(ceads));
+
+    const deduplicatedUsingUrls = [...new Set(usingUrls)];
+
+    const cachedVideo = await caches.open(VIDEO_CACHE_NAME);
+    const cachedRequests = await cachedVideo.keys();
+    const cachedUrls = cachedRequests.map(request => request.url);
+    const unusingUrls = cachedUrls.filter(
+      url => !deduplicatedUsingUrls.includes(url),
+    );
+
+    console.log('unusingUrls', unusingUrls);
+
+    await deleteCachedVideo(unusingUrls);
+
     await initPlayer(crads, device, sudo);
     removeCeadJobs();
     removeCpadJobs();
@@ -223,6 +241,32 @@ const scheduleCpads = async cpads => {
   }
 };
 
+function getFilteredVideoUrl(ads) {
+  let urls = [];
+  const categoryIds = ads.items.map(e => e.CATEGORY_ID);
+  findData(ads.slots, 'SLOT_ID', (_key, _value, object) => {
+    if (categoryIds.includes(object.CATEGORY_ID) && object.files) {
+      findData(object, 'VIDEO_URL', (key, value, _object) => {
+        urls.push(value);
+      });
+    }
+  });
+  const deduplicatedUrls = [...new Set(urls)];
+
+  return deduplicatedUrls;
+}
+
+function getVideoUrl(ads) {
+  let urls = [];
+  findData(ads, 'VIDEO_URL', (_key, value, _object) => {
+    urls.push(value);
+  });
+
+  const deduplicatedUrls = [...new Set(urls)];
+
+  return deduplicatedUrls;
+}
+
 /**
  * 일반재생목록과 플레이어 정보를 받아 UI 및 player를 초기화
  *
@@ -253,16 +297,7 @@ async function initPlayer(crads, device, sudo = false) {
 
   player.videoList = itemsToVideoList(crads);
 
-  let urls = [];
-  const categoryIds = crads.items.map(e => e.CATEGORY_ID);
-  findData(crads.slots, 'SLOT_ID', (_key, _value, object) => {
-    if (categoryIds.includes(object.CATEGORY_ID) && object.files) {
-      findData(object, 'VIDEO_URL', (key, value, _object) => {
-        urls.push(value);
-      });
-    }
-  });
-  const deduplicatedUrls = [...new Set(urls)];
+  const deduplicatedUrls = getFilteredVideoUrl(crads);
   try {
     await fetchVideoAll(deduplicatedUrls, sudo);
     console.log('finish fetching');

@@ -38,12 +38,9 @@ const setDeviceId = async deviceId => {
  */
 const deleteCachedVideo = async urls => {
   const cachedVideo = await caches.open(VIDEO_CACHE_NAME);
-  const videoUrls = await cachedVideo.keys();
 
-  videoUrls.forEach(async url => {
-    // if (!urls.includes(url)) {
+  urls.forEach(async url => {
     await cachedVideo.delete(url);
-    // }
   });
 };
 
