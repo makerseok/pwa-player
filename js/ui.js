@@ -159,6 +159,7 @@ const displaySpinnerOnTable = () => {
   const deviceConfigNode = document.querySelector('#device-config');
   displaySpinnerWithPercent(videoListNode);
   displaySpinner(deviceConfigNode);
+  showPlaylistOnly();
 };
 
 /**
