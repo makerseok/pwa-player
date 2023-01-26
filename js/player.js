@@ -258,8 +258,20 @@ player.on('exitFullWindow', () => {
   player.pause();
 });
 
+let latestTap;
+let touchCount = 0;
 player.on('touchstart', () => {
-  player.exitFullWindow();
+  const now = new Date().getTime();
+  const timesince = now - latestTap;
+  if (timesince < 400 && timesince > 0) {
+    touchCount++;
+    if (touchCount >= 2) {
+      player.exitFullWindow();
+    }
+  } else {
+    touchCount = 0;
+  }
+  latestTap = new Date().getTime();
 });
 
 /**
