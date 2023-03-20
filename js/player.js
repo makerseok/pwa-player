@@ -369,7 +369,7 @@ player.on('ended', async function () {
   if (player.type === 'rad') {
     const videoInfo = {
       videoIndex: currentIndex,
-      PlayOn: currentItem.report.PLAY_ON,
+      playOn: currentItem.report.PLAY_ON,
       categoryId: currentItem.categoryId,
       slotId: currentItem.slotId,
       fileId: currentItem.report.FILE_ID,
@@ -739,3 +739,36 @@ const initialization = async () => {
 
   window.location.reload();
 };
+
+async function playVideo() {
+  const lastPlayed = await db.lastPlayed.get(player.deviceId);
+  const date = new Date();
+  const timestamp = Math.floor(date.getTime() / 1000);
+  const notPlayable =
+    timestamp < player.runon || timestamp > player.runoff || player.isEnd;
+
+  if (lastPlayed) {
+    const playOn = lastPlayed.playOn;
+
+    if (player.paused() && player.lastChecked === playOn && !notPlayable) {
+      console.log('paused! - play video');
+      player.play();
+    }
+    player.lastChecked = playOn;
+  } else {
+    if (player.paused() && !notPlayable) {
+      console.log('paused! - play video');
+      player.play();
+    }
+    player.lastChecked = getFormattedDate(date);
+  }
+}
+
+function schedulePlayVideo() {
+  const cronText = '*/1 * * * *';
+  console.log('cron info - play video', cronText);
+  const job = Cron(cronText, () => {
+    playVideo();
+  });
+  return job;
+}
